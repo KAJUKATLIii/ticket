@@ -106,6 +106,13 @@ web_modules/
 .env.production.local
 .env.local
 
+# SQLite Database storage
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # parcel-bundler cache (https://parceljs.org/)
 
 .parcel-cache
