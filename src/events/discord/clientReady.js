@@ -4,9 +4,7 @@
  * MIT License
  */
 
-import { ActivityType } from "discord.js";
-import { REST } from "@discordjs/rest";
-import { Routes } from "discord-api-types/v10";
+import { ActivityType, REST, Routes } from "discord.js";
 import { logger } from "#utils/logger";
 import { config } from "#config/config";
 
@@ -21,7 +19,7 @@ export default {
     client.user.setActivity("tickets for insane community", {
       type: ActivityType.Watching,
     });
-    logger.info("Bot", "Set activity to: Watching tickets for insane community");
+    logger.info("Bot", "Activity set: Watching tickets for insane community");
 
     try {
       const slashCommandsData =
