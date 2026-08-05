@@ -199,12 +199,14 @@ export function initializeDatabase(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_polls_guild ON polls(guild_id);
 
-    -- ─── Leveling Configuration (MEE6 Style) ──────────────────────────────────
+    -- ─── Leveling Configuration ────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS level_config (
-      guild_id    TEXT PRIMARY KEY,
-      channel_id  TEXT,
-      enabled     INTEGER NOT NULL DEFAULT 1,
-      message     TEXT NOT NULL DEFAULT 'GG {user}, you just advanced to level **{level}**! 🎉'
+      guild_id     TEXT PRIMARY KEY,
+      channel_id   TEXT,
+      enabled      INTEGER NOT NULL DEFAULT 1,
+      max_level    INTEGER NOT NULL DEFAULT 50,
+      xp_per_level INTEGER NOT NULL DEFAULT 100,
+      xp_rate      REAL NOT NULL DEFAULT 1.0
     );
   `);
 }

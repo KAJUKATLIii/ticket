@@ -12,19 +12,19 @@ class LevelAdminCommand extends Command {
   constructor() {
     super({
       name: "leveladmin",
-      description: "Manage leveling, XP, channel, and level role rewards (Admin)",
-      usage: "leveladmin <addxp|addrole|setchannel|roles|reset>",
+      description: "Manage leveling, XP, channel, level progression, and role rewards (Admin)",
+      usage: "leveladmin <addxp|addrole|setchannel|setprogression|roles|reset>",
       examples: [
         "leveladmin addxp @user 500",
         "leveladmin addrole 5 @role",
-        "leveladmin setchannel #level-ups",
+        "leveladmin setprogression maxlevel:50 xprate:1.5",
       ],
       userPermissions: [PermissionFlagsBits.ManageGuild],
       botPermissions: [PermissionFlagsBits.ManageRoles],
       enabledSlash: true,
       slashData: {
         name: "leveladmin",
-        description: "Manage leveling, XP, channel, and level role rewards (Admin)",
+        description: "Manage leveling, XP, channel, level progression, and role rewards (Admin)",
         defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
         options: [
           {
@@ -67,6 +67,16 @@ class LevelAdminCommand extends Command {
                   { name: "💬 Reset to Current Channel", value: "current" },
                 ],
               },
+            ],
+          },
+          {
+            name: "setprogression",
+            description: "Configure max level cap, XP requirement per level, or XP rate multiplier",
+            type: 1, // SUB_COMMAND
+            options: [
+              { name: "maxlevel", description: "Max level cap (e.g. 50, 100, or 0 for unlimited)", type: 4, required: false },
+              { name: "xpperlevel", description: "Base XP required per level (e.g. 100)", type: 4, required: false },
+              { name: "xprate", description: "XP Boost Multiplier (e.g. 1.0 = normal, 1.5 = 1.5x, 2.0 = 2x)", type: 10, required: false },
             ],
           },
           {
@@ -142,7 +152,37 @@ class LevelAdminCommand extends Command {
           : "Disabled";
 
         return ctx.reply({
-          content: `${emoji.info} Current Level-Up Config: **${statusStr}**. Use options to change channel or toggle ON/OFF.`,
+          content: `${emoji.info} Current Level-Up Config: **${statusStr}**.`,
+        });
+      }
+
+      // ── Set Progression / Max Level / XP Rate ──────────────────────────────
+      if (sub === "setprogression") {
+        const maxlevel = ctx.interaction.options.getInteger("maxlevel");
+        const xpperlevel = ctx.interaction.options.getInteger("xpperlevel");
+        const xprate = ctx.interaction.options.getNumber("xprate");
+
+        const updateData = {};
+        if (maxlevel !== null) updateData.maxLevel = maxlevel;
+        if (xpperlevel !== null && xpperlevel > 0) updateData.xpPerLevel = xpperlevel;
+        if (xprate !== null && xprate > 0) updateData.xpRate = xprate;
+
+        if (Object.keys(updateData).length === 0) {
+          const cfg = await db.getLevelConfig(guildId);
+          return ctx.reply({
+            content: `${emoji.info} Current Level Progression Settings:\n` +
+              `• **Max Level Cap:** \`Level ${cfg.maxLevel > 0 ? cfg.maxLevel : "Unlimited"}\`\n` +
+              `• **XP Requirement Multiplier:** \`${cfg.xpPerLevel} XP per level\`\n` +
+              `• **XP Boost Multiplier:** \`${cfg.xpRate}x XP\``,
+          });
+        }
+
+        const updated = await db.setLevelConfig(guildId, updateData);
+        return ctx.reply({
+          content: `${emoji.check} Level Progression updated!\n` +
+            `• **Max Level Cap:** \`Level ${updated.maxLevel > 0 ? updated.maxLevel : "Unlimited"}\`\n` +
+            `• **XP Requirement:** \`${updated.xpPerLevel} XP per level\`\n` +
+            `• **XP Boost Rate:** \`${updated.xpRate}x XP\``,
         });
       }
 
@@ -172,7 +212,7 @@ class LevelAdminCommand extends Command {
       }
     } else {
       return ctx.reply({
-        content: `Use slash command \`/leveladmin <addxp|addrole|setchannel|roles|reset>\``,
+        content: `Use slash command \`/leveladmin <addxp|addrole|setchannel|setprogression|roles|reset>\``,
       });
     }
   }

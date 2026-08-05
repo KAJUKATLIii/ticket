@@ -12,16 +12,6 @@ import { emoji } from "#config/emoji";
 const xpCooldowns = new Map();
 const COOLDOWN_MS = 60_000;
 
-function resolveLevelPlaceholders(template, member, level, xp) {
-  return template
-    .replace(/\{user\}/g,        member.toString())
-    .replace(/\{username\}/g,    member.user.username)
-    .replace(/\{displayname\}/g, member.displayName ?? member.user.username)
-    .replace(/\{server\}/g,      member.guild.name)
-    .replace(/\{level\}/g,       level.toString())
-    .replace(/\{xp\}/g,          xp.toLocaleString());
-}
-
 export default {
   name: "messageCreate",
   async execute({ eventArgs, client }) {
@@ -44,7 +34,7 @@ export default {
     xpCooldowns.set(key, nowTime);
 
     try {
-      // Award random MEE6 XP between 15 and 25
+      // Award random XP between 15 and 25
       const xpGained = Math.floor(Math.random() * 11) + 15;
       const result   = await client.db.addXP(guildId, userId, xpGained);
 
@@ -56,22 +46,18 @@ export default {
 
         // Check if level up messages are enabled
         if (lvlCfg.enabled !== false) {
-          const rawMsg = lvlCfg.message || "GG {user}, you just advanced to level **{level}**! 🎉";
-          const resolvedText = resolveLevelPlaceholders(rawMsg, message.member ?? { user: message.author, guild: message.guild }, result.level, result.xp);
-
           const embed = new EmbedBuilder()
             .setColor(0x5865F2)
             .setAuthor({
               name: `${message.author.username} Leveled Up!`,
               iconURL: message.author.displayAvatarURL({ dynamic: true }),
             })
-            .setDescription(resolvedText)
+            .setDescription(`🎉 **Congratulations** ${message.author}! You reached **Level ${result.level}**!`)
             .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
             .addFields(
-              { name: `${emoji.starFill} Level`,   value: `**Level ${result.level}**`,                 inline: true },
-              { name: `${emoji.stats} Current XP`,  value: `\`${result.currentLevelXP.toLocaleString()} / ${result.nextLevelXP.toLocaleString()} XP\``, inline: true },
+              { name: `${emoji.stats} Total XP`, value: `\`${result.xp.toLocaleString()} XP\``, inline: true },
+              { name: `${emoji.arrow} Next Level`, value: `\`${result.nextLevelXP.toLocaleString()} XP\``, inline: true },
             )
-            .setFooter({ text: `MEE6 Level System • ${message.guild.name}` })
             .setTimestamp();
 
           // Determine target channel (configured channel or current channel)

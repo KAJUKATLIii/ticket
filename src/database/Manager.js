@@ -817,38 +817,8 @@ export class DatabaseManager extends EventEmitter {
   // ── Leveling System ────────────────────────────────────────────────────────
 
   /** Calculate total XP required to reach next level */
-  getXPForLevel(level) {
-    return 5 * (level ** 2) + 50 * level + 100;
-  }
-
-  getTotalXPForLevel(level) {
-    let total = 0;
-    for (let i = 0; i < level; i++) {
-      total += this.getXPForLevel(i);
-    }
-    return total;
-  }
-
-  getLevelFromTotalXP(totalXP) {
-    let level = 0;
-    let required = this.getXPForLevel(0);
-    let accumulated = required;
-
-    while (totalXP >= accumulated) {
-      level++;
-      required = this.getXPForLevel(level);
-      accumulated += required;
-    }
-
-    const currentLevelBaseXP = this.getTotalXPForLevel(level);
-    const currentLevelXP = totalXP - currentLevelBaseXP;
-    const nextLevelXP = this.getXPForLevel(level);
-
-    return {
-      level,
-      currentLevelXP,
-      nextLevelXP,
-    };
+  getXPForLevel(level, xpPerLevel = 100) {
+    return (level + 1) * xpPerLevel;
   }
 
   async getLevelConfig(guildId) {
@@ -857,7 +827,9 @@ export class DatabaseManager extends EventEmitter {
       guildId,
       channelId: row?.channel_id ?? null,
       enabled: row?.enabled !== 0,
-      message: row?.message ?? "GG {user}, you just advanced to level **{level}**! 🎉",
+      maxLevel: row?.max_level ?? 50,
+      xpPerLevel: row?.xp_per_level ?? 100,
+      xpRate: row?.xp_rate ?? 1.0,
     };
   }
 
@@ -865,12 +837,21 @@ export class DatabaseManager extends EventEmitter {
     const existing = await this.getLevelConfig(guildId);
     const merged = { ...existing, ...config };
     this.db.prepare(
-      `INSERT INTO level_config (guild_id, channel_id, enabled, message) VALUES (?, ?, ?, ?)
+      `INSERT INTO level_config (guild_id, channel_id, enabled, max_level, xp_per_level, xp_rate) VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(guild_id) DO UPDATE SET
          channel_id = excluded.channel_id,
          enabled = excluded.enabled,
-         message = excluded.message`
-    ).run(guildId, merged.channelId, merged.enabled ? 1 : 0, merged.message);
+         max_level = excluded.max_level,
+         xp_per_level = excluded.xp_per_level,
+         xp_rate = excluded.xp_rate`
+    ).run(
+      guildId,
+      merged.channelId,
+      merged.enabled ? 1 : 0,
+      merged.maxLevel ?? 50,
+      merged.xpPerLevel ?? 100,
+      merged.xpRate ?? 1.0
+    );
     return merged;
   }
 
@@ -891,30 +872,35 @@ export class DatabaseManager extends EventEmitter {
       };
     }
 
-    const info = this.getLevelFromTotalXP(row.xp);
-
     return {
       guildId: row.guild_id,
       userId: row.user_id,
       xp: row.xp,
-      level: info.level,
-      currentLevelXP: info.currentLevelXP,
-      nextLevelXP: info.nextLevelXP,
+      level: row.level,
       messages: row.messages,
       lastXpAt: row.last_xp_at,
     };
   }
 
-  /** Add XP to a user and check for level-up (MEE6 Formula). */
+  /** Add XP to a user and check for level-up. */
   async addXP(guildId, userId, amount = 15) {
     const current = await this.getUserLevel(guildId, userId);
-    const newXP = current.xp + amount;
+    const lvlCfg = await this.getLevelConfig(guildId);
+
+    const boostedAmount = Math.round(amount * (lvlCfg.xpRate || 1.0));
+    const newXP = current.xp + boostedAmount;
     const newMessages = current.messages + 1;
 
-    const oldLevelInfo = this.getLevelFromTotalXP(current.xp);
-    const newLevelInfo = this.getLevelFromTotalXP(newXP);
+    let newLevel = current.level;
+    let needed = this.getXPForLevel(newLevel, lvlCfg.xpPerLevel);
 
-    const leveledUp = newLevelInfo.level > oldLevelInfo.level;
+    const maxCap = lvlCfg.maxLevel > 0 ? lvlCfg.maxLevel : 9999;
+    while (newXP >= needed && newLevel < maxCap) {
+      newLevel++;
+      needed = this.getXPForLevel(newLevel, lvlCfg.xpPerLevel);
+    }
+
+    const leveledUp = newLevel > current.level;
 
     this.db.prepare(
       `INSERT INTO user_levels (guild_id, user_id, xp, level, messages, last_xp_at)
@@ -924,18 +910,18 @@ export class DatabaseManager extends EventEmitter {
          level = excluded.level,
          messages = excluded.messages,
          last_xp_at = excluded.last_xp_at`
-    ).run(guildId, userId, newXP, newLevelInfo.level, newMessages, now());
+    ).run(guildId, userId, newXP, newLevel, newMessages, now());
 
     return {
       guildId,
       userId,
       xp: newXP,
-      level: newLevelInfo.level,
-      oldLevel: oldLevelInfo.level,
+      level: newLevel,
+      oldLevel: current.level,
       leveledUp,
       messages: newMessages,
-      currentLevelXP: newLevelInfo.currentLevelXP,
-      nextLevelXP: newLevelInfo.nextLevelXP,
+      nextLevelXP: needed,
+      maxLevel: lvlCfg.maxLevel,
     };
   }
 
@@ -945,33 +931,28 @@ export class DatabaseManager extends EventEmitter {
       "SELECT * FROM user_levels WHERE guild_id = ? ORDER BY xp DESC LIMIT ?"
     ).all(guildId, limit);
 
-    return rows.map((r, i) => {
-      const info = this.getLevelFromTotalXP(r.xp);
-      return {
-        rank: i + 1,
-        userId: r.user_id,
-        xp: r.xp,
-        level: info.level,
-        messages: r.messages,
-      };
-    });
+    return rows.map((r, i) => ({
+      rank: i + 1,
+      userId: r.user_id,
+      xp: r.xp,
+      level: r.level,
+      messages: r.messages,
+    }));
   }
 
   /** Get user's rank position in server */
   async getUserRank(guildId, userId) {
     const user = await this.getUserLevel(guildId, userId);
-    const info = this.getLevelFromTotalXP(user.xp);
-
+    const lvlCfg = await this.getLevelConfig(guildId);
     const countRow = this.db.prepare(
       "SELECT COUNT(*) AS c FROM user_levels WHERE guild_id = ? AND xp > ?"
     ).get(guildId, user.xp);
 
     return {
       ...user,
-      level: info.level,
-      currentLevelXP: info.currentLevelXP,
-      neededXP: info.nextLevelXP,
       rank: (countRow?.c ?? 0) + 1,
+      neededXP: this.getXPForLevel(user.level, lvlCfg.xpPerLevel),
+      maxLevel: lvlCfg.maxLevel,
     };
   }
 
