@@ -172,6 +172,13 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 | `/leaderboard` | Top 10 XP leaderboard for the server (`/top`, `/lb`) | Everyone |
 | `/leveladmin <addxp\|addrole\|roles\|reset>` | Manage user XP, role rewards, and server reset | Manage Guild |
 
+### 💡 Suggestions System
+| Command | Description | Permission |
+|---|---|---|
+| `/suggest <text>` | Submit a new suggestion with interactive voting buttons | Everyone |
+| `/suggest-manage setup <channel>` | Set the server suggestion channel | Manage Guild |
+| `/suggest-manage <accept\|deny\|consider> <id> [reason]` | Respond to a suggestion & edit embed live | Manage Guild |
+
 ### 🛠️ Admin / Settings
 | Command | Description | Permission |
 |---|---|---|

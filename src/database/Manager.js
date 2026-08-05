@@ -110,6 +110,25 @@ function mapTicket(row, addedUsers = [], removedUsers = []) {
   };
 }
 
+function mapSuggestion(row) {
+  if (!row) return null;
+  return {
+    suggestionId: row.suggestion_id,
+    guildId: row.guild_id,
+    userId: row.user_id,
+    channelId: row.channel_id,
+    messageId: row.message_id,
+    content: row.content,
+    status: row.status,
+    staffResponse: row.staff_response,
+    staffId: row.staff_id,
+    upvotes: parse(row.upvotes, []),
+    downvotes: parse(row.downvotes, []),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 // ─── DatabaseManager ─────────────────────────────────────────────────────────
 
 export class DatabaseManager extends EventEmitter {
@@ -900,6 +919,108 @@ export class DatabaseManager extends EventEmitter {
 
   async resetGuildLevels(guildId) {
     this.db.prepare("DELETE FROM user_levels WHERE guild_id = ?").run(guildId);
+  }
+
+  // ── Suggestions System ───────────────────────────────────────────────────
+
+  async getSuggestionConfig(guildId) {
+    const row = this.db.prepare("SELECT * FROM suggestion_config WHERE guild_id = ?").get(guildId);
+    if (!row) return { guildId, channelId: null, autoUpvote: true, anonymous: false, logsChannelId: null };
+    return {
+      guildId: row.guild_id,
+      channelId: row.channel_id,
+      autoUpvote: !!row.auto_upvote,
+      anonymous: !!row.anonymous,
+      logsChannelId: row.logs_channel_id,
+    };
+  }
+
+  async setSuggestionConfig(guildId, data) {
+    const current = await this.getSuggestionConfig(guildId);
+    const channelId = data.channelId !== undefined ? data.channelId : current.channelId;
+    const autoUpvote = data.autoUpvote !== undefined ? (data.autoUpvote ? 1 : 0) : (current.autoUpvote ? 1 : 0);
+    const anonymous = data.anonymous !== undefined ? (data.anonymous ? 1 : 0) : (current.anonymous ? 1 : 0);
+    const logsChannelId = data.logsChannelId !== undefined ? data.logsChannelId : current.logsChannelId;
+
+    this.db.prepare(
+      `INSERT INTO suggestion_config (guild_id, channel_id, auto_upvote, anonymous, logs_channel_id)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET
+         channel_id = excluded.channel_id,
+         auto_upvote = excluded.auto_upvote,
+         anonymous = excluded.anonymous,
+         logs_channel_id = excluded.logs_channel_id`
+    ).run(guildId, channelId, autoUpvote, anonymous, logsChannelId);
+
+    return this.getSuggestionConfig(guildId);
+  }
+
+  async createSuggestion(guildId, userId, channelId, content) {
+    const suggestionId = `sug_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    this.db.prepare(
+      `INSERT INTO suggestions (suggestion_id, guild_id, user_id, channel_id, content, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(suggestionId, guildId, userId, channelId, content, now(), now());
+
+    return this.getSuggestion(suggestionId);
+  }
+
+  async setSuggestionMessageId(suggestionId, messageId) {
+    this.db.prepare("UPDATE suggestions SET message_id = ?, updated_at = ? WHERE suggestion_id = ?")
+      .run(messageId, now(), suggestionId);
+    return this.getSuggestion(suggestionId);
+  }
+
+  async getSuggestion(suggestionId) {
+    const row = this.db.prepare("SELECT * FROM suggestions WHERE suggestion_id = ?").get(suggestionId);
+    return mapSuggestion(row);
+  }
+
+  async getSuggestionByMessage(messageId) {
+    const row = this.db.prepare("SELECT * FROM suggestions WHERE message_id = ?").get(messageId);
+    return mapSuggestion(row);
+  }
+
+  async updateSuggestionStatus(suggestionId, status, staffId, staffResponse = null) {
+    this.db.prepare(
+      `UPDATE suggestions
+       SET status = ?, staff_id = ?, staff_response = ?, updated_at = ?
+       WHERE suggestion_id = ?`
+    ).run(status, staffId, staffResponse, now(), suggestionId);
+    return this.getSuggestion(suggestionId);
+  }
+
+  async voteSuggestion(suggestionId, userId, voteType) {
+    const sug = await this.getSuggestion(suggestionId);
+    if (!sug) return null;
+
+    let upvotes = new Set(sug.upvotes);
+    let downvotes = new Set(sug.downvotes);
+
+    if (voteType === "up") {
+      if (upvotes.has(userId)) {
+        upvotes.delete(userId);
+      } else {
+        upvotes.add(userId);
+        downvotes.delete(userId);
+      }
+    } else if (voteType === "down") {
+      if (downvotes.has(userId)) {
+        downvotes.delete(userId);
+      } else {
+        downvotes.add(userId);
+        upvotes.delete(userId);
+      }
+    }
+
+    const upArr = Array.from(upvotes);
+    const downArr = Array.from(downvotes);
+
+    this.db.prepare(
+      `UPDATE suggestions SET upvotes = ?, downvotes = ?, updated_at = ? WHERE suggestion_id = ?`
+    ).run(json(upArr), json(downArr), now(), suggestionId);
+
+    return this.getSuggestion(suggestionId);
   }
 }
 

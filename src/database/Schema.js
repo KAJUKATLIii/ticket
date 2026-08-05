@@ -138,6 +138,33 @@ export function initializeDatabase(db) {
       role_id   TEXT    NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_level_roles_guild ON level_roles(guild_id, level);
+
+    -- ─── Suggestions System ───────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS suggestion_config (
+      guild_id        TEXT PRIMARY KEY,
+      channel_id      TEXT,
+      auto_upvote     INTEGER NOT NULL DEFAULT 1,
+      anonymous       INTEGER NOT NULL DEFAULT 0,
+      logs_channel_id TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS suggestions (
+      suggestion_id   TEXT PRIMARY KEY,
+      guild_id        TEXT    NOT NULL,
+      user_id         TEXT    NOT NULL,
+      channel_id      TEXT    NOT NULL,
+      message_id      TEXT,
+      content         TEXT    NOT NULL,
+      status          TEXT    NOT NULL DEFAULT 'pending',
+      staff_response  TEXT,
+      staff_id        TEXT,
+      upvotes         TEXT    NOT NULL DEFAULT '[]',
+      downvotes       TEXT    NOT NULL DEFAULT '[]',
+      created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_sug_guild ON suggestions(guild_id);
+    CREATE INDEX IF NOT EXISTS idx_sug_status ON suggestions(guild_id, status);
   `);
 }
 
