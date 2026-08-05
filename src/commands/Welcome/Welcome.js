@@ -77,6 +77,7 @@ function statusBlock(cfg) {
   const dm        = cfg.dmEnabled  ? `${emoji.check} On`          : `${emoji.cross} Off`;
   const ping      = cfg.pingUser   ? `${emoji.check} On`          : `${emoji.cross} Off`;
   const react     = cfg.autoReact  ? `${emoji.check} On (👋)`     : `${emoji.cross} Off`;
+  const mode      = cfg.useEmbed === false ? "💬 **Normal Text Message**" : "🎨 **Rich Embed Message**";
   const color     = cfg.color      ? `\`${cfg.color}\``            : "`#5865F2`";
   const banner    = cfg.bannerUrl  ? `[View Banner](${cfg.bannerUrl})` : "*none*";
 
@@ -88,6 +89,7 @@ function statusBlock(cfg) {
     `## ${emoji.bell} Welcome System Configuration`,
     ``,
     `${emoji.info}  **Status**       ${enabled}`,
+    `${emoji.settings}  **Message Mode** ${mode}`,
     `${emoji.channel}  **Channel**      ${channel}`,
     `${emoji.users}  **Auto-Role**    ${role}`,
     `${emoji.note}  **Message**      ${preview}`,
@@ -104,6 +106,7 @@ function statusBlock(cfg) {
 function buildPanel(cfg) {
   const toggleLabel = cfg.enabled ? "Disable" : "Enable";
   const toggleStyle = cfg.enabled ? ButtonStyle.Danger : ButtonStyle.Success;
+  const isNormalText = cfg.useEmbed === false;
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(new TextDisplayBuilder().setContent(statusBlock(cfg)))
@@ -111,21 +114,22 @@ function buildPanel(cfg) {
     .addActionRowComponents(
       new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId("welcome_toggle").setLabel(toggleLabel).setStyle(toggleStyle).setEmoji(cfg.enabled ? "🔕" : "🔔"),
+        new ButtonBuilder().setCustomId("welcome_toggle_mode").setLabel(isNormalText ? "Mode: Normal Text" : "Mode: Rich Embed").setStyle(ButtonStyle.Primary).setEmoji(isNormalText ? "💬" : "🎨"),
         new ButtonBuilder().setCustomId("welcome_set_channel").setLabel("Set Channel").setStyle(ButtonStyle.Primary).setEmoji("📢"),
         new ButtonBuilder().setCustomId("welcome_set_message").setLabel("Set Message").setStyle(ButtonStyle.Primary).setEmoji("📝"),
-        new ButtonBuilder().setCustomId("welcome_test").setLabel("Test Preview").setStyle(ButtonStyle.Success).setEmoji("🧪"),
       )
     )
     .addActionRowComponents(
       new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("welcome_test").setLabel("Test Preview").setStyle(ButtonStyle.Success).setEmoji("🧪"),
         new ButtonBuilder().setCustomId("welcome_set_role").setLabel("Auto-Role").setStyle(ButtonStyle.Secondary).setEmoji("🛡️"),
         new ButtonBuilder().setCustomId("welcome_toggle_dm").setLabel(`DM: ${cfg.dmEnabled ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("📨"),
         new ButtonBuilder().setCustomId("welcome_toggle_ping").setLabel(`Ping: ${cfg.pingUser ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("🔔"),
-        new ButtonBuilder().setCustomId("welcome_toggle_react").setLabel(`React: ${cfg.autoReact ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("👋"),
       )
     )
     .addActionRowComponents(
       new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("welcome_toggle_react").setLabel(`React: ${cfg.autoReact ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("👋"),
         new ButtonBuilder().setCustomId("welcome_set_banner").setLabel("Banner Image").setStyle(ButtonStyle.Secondary).setEmoji("🖼️"),
         new ButtonBuilder().setCustomId("welcome_set_color").setLabel("Embed Color").setStyle(ButtonStyle.Secondary).setEmoji("🎨"),
         new ButtonBuilder().setCustomId("welcome_reset").setLabel("Reset").setStyle(ButtonStyle.Danger).setEmoji("♻️"),
@@ -141,7 +145,7 @@ class WelcomeCommand extends Command {
   constructor() {
     super({
       name: "welcome",
-      description: "Configure the welcome system for this server",
+      description: "Configure the welcome system (Embed or Normal Message)",
       usage: "welcome",
       examples: ["welcome"],
       userPermissions: [PermissionFlagsBits.ManageGuild],
@@ -149,7 +153,7 @@ class WelcomeCommand extends Command {
       enabledSlash: true,
       slashData: {
         name: "welcome",
-        description: "Configure the welcome system for this server",
+        description: "Configure the welcome system (Embed or Normal Message)",
         defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
       },
     });
@@ -185,6 +189,14 @@ class WelcomeCommand extends Command {
           return;
         }
 
+        // ── Toggle Mode (Embed vs Normal Text) ────────────────────────────────
+        if (i.customId === "welcome_toggle_mode") {
+          const currentMode = cfg.useEmbed !== false; // default true
+          await db.setWelcome(ctx.guild.id, { useEmbed: !currentMode });
+          await i.update({ components: [buildPanel(await db.getWelcome(ctx.guild.id))], flags: MessageFlags.IsComponentsV2 });
+          return;
+        }
+
         // ── Toggle DM ─────────────────────────────────────────────────────────
         if (i.customId === "welcome_toggle_dm") {
           await db.setWelcome(ctx.guild.id, { dmEnabled: !cfg.dmEnabled });
@@ -208,13 +220,26 @@ class WelcomeCommand extends Command {
 
         // ── Test Preview ──────────────────────────────────────────────────────
         if (i.customId === "welcome_test") {
-          const testEmbed = buildWelcomeEmbed(cfg, ctx.member);
-          const content = cfg.pingUser ? `${ctx.member}` : undefined;
-          await i.reply({
-            content: `🧪 **Welcome Message Live Test Preview:**\n${content ?? ""}`,
-            embeds: [testEmbed],
-            flags: MessageFlags.Ephemeral,
-          });
+          if (cfg.useEmbed === false) {
+            // Normal Text mode test
+            const rawMessage = cfg.message ||
+              `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
+            const resolved = resolvePlaceholders(rawMessage, ctx.member);
+            const content = cfg.pingUser ? `${ctx.member}\n${resolved}` : resolved;
+            await i.reply({
+              content: `🧪 **Welcome Message Live Test Preview (Normal Text Mode):**\n\n${content}`,
+              flags: MessageFlags.Ephemeral,
+            });
+          } else {
+            // Embed mode test
+            const testEmbed = buildWelcomeEmbed(cfg, ctx.member);
+            const content = cfg.pingUser ? `${ctx.member}` : undefined;
+            await i.reply({
+              content: `🧪 **Welcome Message Live Test Preview (Rich Embed Mode):**\n${content ?? ""}`,
+              embeds: [testEmbed],
+              flags: MessageFlags.Ephemeral,
+            });
+          }
           return;
         }
 

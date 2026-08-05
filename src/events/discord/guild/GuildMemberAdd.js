@@ -20,15 +20,25 @@ export default {
       // ── Nothing configured ────────────────────────────────────────────────
       if (!cfg || !cfg.enabled) return;
 
-      // ── Build welcome embed ───────────────────────────────────────────────
-      const embed = buildWelcomeEmbed(cfg, member);
-
       // ── Send to welcome channel ───────────────────────────────────────────
       if (cfg.channelId) {
         const channel = guild.channels.cache.get(cfg.channelId);
         if (channel?.isTextBased()) {
-          const content = cfg.pingUser ? `${member}` : undefined;
-          const sentMsg = await channel.send({ content, embeds: [embed] });
+          let sentMsg;
+
+          if (cfg.useEmbed === false) {
+            // Normal Plain Text mode
+            const rawMessage = cfg.message ||
+              `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
+            const resolved = resolvePlaceholders(rawMessage, member);
+            const content = cfg.pingUser ? `${member}\n${resolved}` : resolved;
+            sentMsg = await channel.send({ content });
+          } else {
+            // Rich Embed mode (default)
+            const embed = buildWelcomeEmbed(cfg, member);
+            const content = cfg.pingUser ? `${member}` : undefined;
+            sentMsg = await channel.send({ content, embeds: [embed] });
+          }
 
           // ── Auto React ────────────────────────────────────────────────────
           if (cfg.autoReact) {
@@ -44,25 +54,31 @@ export default {
         const rawMessage = cfg.message ||
           `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
         const resolved = resolvePlaceholders(rawMessage, member);
-        const color = cfg.color ? parseInt(cfg.color.replace("#", ""), 16) : 0x5865f2;
 
-        const dmEmbed = new EmbedBuilder()
-          .setColor(color)
-          .setTitle(`👋 Welcome to ${guild.name}!`)
-          .setDescription(resolved)
-          .setThumbnail(guild.iconURL({ dynamic: true }) ?? null)
-          .setTimestamp();
+        if (cfg.useEmbed === false) {
+          await member.send({ content: resolved }).catch(() => {
+            logger.debug("Welcome", `DM failed for ${member.user.tag} — DMs likely closed`);
+          });
+        } else {
+          const color = cfg.color ? parseInt(cfg.color.replace("#", ""), 16) : 0x5865f2;
+          const dmEmbed = new EmbedBuilder()
+            .setColor(color)
+            .setTitle(`👋 Welcome to ${guild.name}!`)
+            .setDescription(resolved)
+            .setThumbnail(guild.iconURL({ dynamic: true }) ?? null)
+            .setTimestamp();
 
-        if (cfg.bannerUrl) {
-          dmEmbed.setImage(cfg.bannerUrl);
+          if (cfg.bannerUrl) {
+            dmEmbed.setImage(cfg.bannerUrl);
+          }
+
+          await member.send({ embeds: [dmEmbed] }).catch(() => {
+            logger.debug("Welcome", `DM failed for ${member.user.tag} — DMs likely closed`);
+          });
         }
-
-        await member.send({ embeds: [dmEmbed] }).catch(() => {
-          logger.debug("Welcome", `DM failed for ${member.user.tag} — DMs likely closed`);
-        });
       }
 
-      // ── Assign auto-role ──────────────────────────────────────────────────
+      // ── Auto Role ─────────────────────────────────────────────────────────
       if (cfg.roleId) {
         const role = guild.roles.cache.get(cfg.roleId);
         if (role) {
