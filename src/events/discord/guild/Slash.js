@@ -18,7 +18,7 @@ import {
 import { config } from "#config/config";
 import { logger } from "#utils/logger";
 import { validateCommand } from "#utils/permissionHandler";
-import { CommandContext } from "#classes/context";
+import { CommandContext } from "#classes/Context";
 
 
 async function _sendError(interaction, title, description, ephemeral = true) {
