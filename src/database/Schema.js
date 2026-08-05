@@ -20,7 +20,7 @@ export function initializeDatabase(db) {
     -- ─── Guilds ────────────────────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS guilds (
       guild_id    TEXT PRIMARY KEY,
-      prefix      TEXT    NOT NULL DEFAULT 'b',
+      prefix      TEXT    NOT NULL DEFAULT '.',
       staff_roles TEXT    NOT NULL DEFAULT '[]',  -- JSON array of role IDs
       welcome     TEXT    NOT NULL DEFAULT '{}',  -- JSON welcome config
       created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
@@ -233,6 +233,9 @@ export function initializeDatabase(db) {
     if (guildCols.length > 0 && !guildCols.includes("welcome")) {
       db.exec("ALTER TABLE guilds ADD COLUMN welcome TEXT NOT NULL DEFAULT '{}';");
     }
+
+    // Fix legacy 'b' default prefix in guilds table
+    db.exec("UPDATE guilds SET prefix = '.' WHERE prefix = 'b';");
   } catch {
     // Migration fallback
   }
