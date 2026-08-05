@@ -14,7 +14,7 @@ class RankCommand extends Command {
   constructor() {
     super({
       name: "rank",
-      description: "View your or another user's current level and XP rank card image",
+      description: "View your or another user's MEE6 rank card image",
       usage: "rank [@user]",
       examples: ["rank", "rank @user"],
       userPermissions: [],
@@ -22,7 +22,7 @@ class RankCommand extends Command {
       enabledSlash: true,
       slashData: {
         name: "rank",
-        description: "View your or another user's current level and XP rank card image",
+        description: "View your or another user's MEE6 rank card image",
         options: [
           {
             name: "user",
@@ -48,6 +48,7 @@ class RankCommand extends Command {
 
     try {
       const rankData = await ctx.client.db.getUserRank(ctx.guild.id, targetUser.id);
+      const currentLevelXP = rankData.currentLevelXP ?? rankData.xp;
       const neededXP = rankData.neededXP || (rankData.level + 1) * 100;
 
       const avatarURL = targetUser.displayAvatarURL({ extension: "png", size: 256 });
@@ -56,7 +57,7 @@ class RankCommand extends Command {
         username: targetUser.username,
         avatarURL,
         level: rankData.level,
-        xp: rankData.xp,
+        xp: currentLevelXP,
         requiredXP: neededXP,
         rank: rankData.rank,
         messages: rankData.messages,
@@ -67,7 +68,7 @@ class RankCommand extends Command {
 
       return ctx.reply({ files: [attachment] });
     } catch (err) {
-      logger.error("Rank", `Failed to generate rank card image for ${targetUser.tag}`, err);
+      logger.error("Rank", `Failed to generate MEE6 rank card image for ${targetUser.tag}`, err);
       return ctx.reply({
         content: `${emoji.cross} Failed to generate rank card image: ${err.message}`,
         flags: MessageFlags.Ephemeral,
