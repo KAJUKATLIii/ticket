@@ -17,10 +17,10 @@ export default {
     logger.info("Bot", `Serving ${client.guilds.cache.size} guilds`);
 
     // Set bot presence to: Watching tickets for insane community
-    client.user.setActivity("tickets for insane community", {
+    client.user.setActivity(" HELPING AAYUSH IS INSANE AND BANDHILKI SMP", {
       type: ActivityType.Watching,
     });
-    logger.info("Bot", "Activity set: Watching tickets for insane community");
+    logger.info("Bot", "HELPING AAYUSH IS INSANE AND BANDHILKI SMP");
 
     // Initialize Birthday Checker task
     initBirthdayChecker(client);

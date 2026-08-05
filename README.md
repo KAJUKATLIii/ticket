@@ -20,10 +20,10 @@
 
 # 🎫 TicketBot
 
-**A multi-functional, zero-dependency Discord ticket, leveling, suggestions, feedback, polls, and welcome management bot.**  
+**A multi-functional, zero-dependency Discord ticket, leveling, birthday, suggestions, feedback, polls, and welcome management bot.**  
 Built with Discord.js v14, `@napi-rs/canvas` Image Rendering, and high-performance WAL SQLite — no MongoDB, no external cloud required.
 
-*Default Activity Status:* `Watching tickets for insane community`
+*Default Activity Status:* `Watching HELPING AAYUSH IS INSANE AND BANDHILKI SMP`
 
 </div>
 
@@ -32,7 +32,8 @@ Built with Discord.js v14, `@napi-rs/canvas` Image Rendering, and high-performan
 ## ✨ System Features Overview
 
 - 🎫 **Multi-Category Ticket System** — Custom dropdown panels, user add/remove, ratings, HTML transcripts, and auto-delete.
-- 🎨 **Dynamic Canvas Image Cards** — Beautiful dark-purple glassmorphic Canvas Rank Cards (`/rank`) and Server Leaderboard Cards (`/leaderboard`).
+- 🎨 **Dynamic Canvas Image Cards** — Beautiful dark-purple glassmorphic Canvas Rank Cards (`/rank`), Server Leaderboard Cards (`/leaderboard`), and Festive Birthday Cards (`/birthday`).
+- 🎂 **Canvas Birthday Celebration System** — Custom Canvas Birthday Cards, channel announcements, temporary 24-hour `@Birthday` role rewards, and automated checker.
 - 📊 **Custom Level Progression** — Max level cap (e.g. Level 50), XP requirement multipliers, server XP rates, and dedicated XP channel restrictions.
 - 💡 **Suggestions System** — Interactive voting buttons, live embed updates (Accepted/Denied/Considered), and auto-deleting trigger messages.
 - ⭐ **Feedback & Star Reviews** — 1 to 5 star rating reviews, statistics breakdown, and dedicated review channel.
@@ -58,7 +59,20 @@ All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
 
 ---
 
-### 📊 2. Leveling & XP Commands
+### 🎂 2. Birthday Celebration Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/birthday set` | `/birthday set month:<1-12> day:<1-31> [year]` | Register your birth date | Everyone |
+| `/birthday view` | `/birthday view [@user]` | View your or another member's birth date | Everyone |
+| `/birthday list` | `/birthday list` | View upcoming server birthdays | Everyone |
+| `/birthday remove` | `/birthday remove` | Delete your saved birthday date | Everyone |
+| `/birthdayadmin setup` | `/birthdayadmin setup channel:<#ch> [role:<@role>]` | Configure birthday announcement channel and role reward | Manage Guild |
+| `/birthdayadmin test` | `/birthdayadmin test user:<@user>` | Send a test Canvas Birthday Card & role assignment preview | Manage Guild |
+| `/birthdayadmin config` | `/birthdayadmin config` | View current birthday system configuration | Manage Guild |
+
+---
+
+### 📊 3. Leveling & XP Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/rank` | `/rank [@user]` | Display dynamic Canvas Rank Card PNG image, level, and XP bar | Everyone |
@@ -73,7 +87,7 @@ All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
 
 ---
 
-### 💡 3. Suggestions Commands
+### 💡 4. Suggestions Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/suggest` | `/suggest <suggestion text>` | Submit a new suggestion with interactive voting buttons | Everyone |
@@ -84,7 +98,7 @@ All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
 
 ---
 
-### ⭐ 4. Feedback & Reviews Commands
+### ⭐ 5. Feedback & Reviews Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/feedback` | `/feedback <1-5 stars> <message>` | Submit a server/staff review with star rating (`/review`) | Everyone |
@@ -93,14 +107,14 @@ All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
 
 ---
 
-### 📊 5. Poll Commands
+### 📊 6. Poll Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/poll` | `/poll <question> <option1> <option2> ...` | Create an interactive poll with up to 5 options & real-time progress bars | Manage Messages |
 
 ---
 
-### 👋 6. Welcome System Commands
+### 👋 7. Welcome System Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/welcome channel` | `/welcome channel <#channel>` | Set welcome announcement channel | Manage Guild |
@@ -110,14 +124,14 @@ All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
 
 ---
 
-### 🎨 7. Embed Builder Commands
+### 🎨 8. Embed Builder Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/embed` | `/embed [#channel]` | Interactive custom rich embed builder with title, description & color | Manage Messages |
 
 ---
 
-### ⚙️ 8. Admin & Server Settings Commands
+### ⚙️ 9. Admin & Server Settings Commands
 | Command | Usage | Description | Permission |
 |---|---|---|---|
 | `/setprefix` | `/setprefix <prefix>` | Set custom server prefix (e.g. `!`, `.`, `?`) | Manage Guild |
@@ -153,6 +167,7 @@ Welcome {user} to **{server}**! 🎉 You are our #{membercount} member. Read the
 src/
 ├── commands/
 │   ├── Admin/          # Blacklist, Prefix, Embed
+│   ├── Birthday/       # Birthday, BirthdayAdmin
 │   ├── Feedback/       # Feedback, FeedbackAdmin
 │   ├── Help/           # Help command
 │   ├── Leveling/       # Rank, Leaderboard, LevelAdmin
@@ -170,14 +185,14 @@ src/
 │   └── Manager.js      # All database operations
 ├── events/
 │   └── discord/
-│       ├── clientReady.js  # Startup & slash command loader
+│       ├── clientReady.js  # Startup, slash loader & birthday checker
 │       ├── ready.js        # Bot presence activity handler
 │       ├── guild/          # Slash, PrefixCmd, GuildMemberAdd, GuildMemberRemove, MessageXP, SuggestionVotes, PollVotes
 │       └── ticket/         # Create, Closed, Deleted, Added, Removed, Rated, Reopen
 ├── structures/
 │   ├── classes/        # Bot, Command, Context, TicketUI
 │   └── handlers/       # CommandHandler, EventLoader
-└── utils/              # Logger, PermissionHandler, rankCardGenerator, leaderboardCardGenerator
+└── utils/              # Logger, PermissionHandler, rankCardGenerator, leaderboardCardGenerator, birthdayCardGenerator, birthdayChecker
 ```
 
 ---
