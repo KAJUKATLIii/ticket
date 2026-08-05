@@ -102,6 +102,11 @@ class FeedbackCommand extends Command {
     }
 
     try {
+      // Delete user's prefix command trigger message (e.g. .feedback 5 Great server!)
+      if (!ctx.isSlash && ctx.message && ctx.message.deletable) {
+        ctx.message.delete().catch(() => {});
+      }
+
       const fb = await db.createFeedback(guildId, ctx.author.id, stars, messageText, targetChannel.id);
 
       const starStr = getStarDisplay(stars);
@@ -125,10 +130,20 @@ class FeedbackCommand extends Command {
       const sentMsg = await targetChannel.send({ embeds: [embed] });
       await db.setFeedbackMessageId(fb.feedbackId, sentMsg.id);
 
-      return ctx.reply({
+      // Reply with confirmation message
+      const replyMsg = await ctx.reply({
         content: `${emoji.check} Thank you for your feedback! Posted in ${targetChannel}.`,
         flags: MessageFlags.Ephemeral,
       });
+
+      // Auto-delete confirmation message after 5 seconds (5000ms) for prefix messages
+      if (!ctx.isSlash && replyMsg) {
+        setTimeout(() => {
+          if (replyMsg.deletable) {
+            replyMsg.delete().catch(() => {});
+          }
+        }, 5000);
+      }
     } catch (err) {
       logger.error("Feedback", "Failed to process feedback", err);
       return ctx.reply({
