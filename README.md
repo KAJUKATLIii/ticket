@@ -171,6 +171,7 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 | `/panel` | Create & manage ticket panels | Manage Guild |
 | `/settings` | Configure bot settings | Manage Guild |
 | `/welcome` | Interactive welcome/goodbye system panel | Manage Guild |
+| `/embed [#channel]` | Interactive custom rich embed builder | Manage Messages |
 | `/help` | Show all commands | Everyone |
 
 ### 📢 Welcome Placeholders
