@@ -12,7 +12,6 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ChannelType,
 } from "discord.js";
 import { emoji } from "#config/emoji";
 import { logger } from "#utils/logger";
@@ -150,12 +149,17 @@ class SuggestCommand extends Command {
 
     if (!targetChannel || !targetChannel.isTextBased()) {
       return ctx.reply({
-        content: `${emoji.cross} The suggestions channel has not been set up by an admin yet. Ask an admin to run \`/suggest-setup #channel\`.`,
+        content: `${emoji.cross} The suggestions channel has not been set up by an admin yet. Ask an admin to run \`/suggest-manage setup #channel\`.`,
         flags: MessageFlags.Ephemeral,
       });
     }
 
     try {
+      // Delete user's prefix command trigger message (e.g. .suggest xyz)
+      if (!ctx.isSlash && ctx.message && ctx.message.deletable) {
+        ctx.message.delete().catch(() => {});
+      }
+
       // Create suggestion in DB
       const sug = await db.createSuggestion(guildId, ctx.author.id, targetChannel.id, content);
 
@@ -168,10 +172,20 @@ class SuggestCommand extends Command {
       // Update DB with message ID
       await db.setSuggestionMessageId(sug.suggestionId, sentMsg.id);
 
-      return ctx.reply({
+      // Send confirmation reply
+      const replyMsg = await ctx.reply({
         content: `${emoji.check} Your suggestion has been submitted to ${targetChannel}! (ID: \`${sug.suggestionId}\`)`,
         flags: MessageFlags.Ephemeral,
       });
+
+      // Auto-delete confirmation message after 5 seconds (5000ms) for prefix messages
+      if (!ctx.isSlash && replyMsg) {
+        setTimeout(() => {
+          if (replyMsg.deletable) {
+            replyMsg.delete().catch(() => {});
+          }
+        }, 5000);
+      }
     } catch (err) {
       logger.error("Suggestions", "Failed to process suggestion", err);
       return ctx.reply({
