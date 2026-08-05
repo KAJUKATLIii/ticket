@@ -61,6 +61,9 @@ class HelpCommand extends Command {
       `### 🎨 Custom Embed Builder`,
       `\`embed\` — *Interactive rich embed designer*`,
       ``,
+      `### 📊 Poll System`,
+      `\`poll\` — *Interactive community polls (up to 5 options)*`,
+      ``,
       `### 🛠️ Admin & Management`,
       `\`panel\` • \`settings\` • \`prefix\` • \`blacklist\``,
     ].join("\n");

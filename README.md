@@ -79,6 +79,7 @@ src/
 │   ├── Help/           # Help command
 │   ├── Leveling/       # Rank, Leaderboard, LevelAdmin
 │   ├── Panel/          # Panel management
+│   ├── Poll/           # Poll
 │   ├── Settings/       # Settings dashboard
 │   ├── Suggestions/    # Suggest, SuggestAdmin
 │   ├── Ticket/         # Add, Close, Delete, Remove, Reopen
@@ -189,6 +190,11 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 | `/feedback <stars 1-5> <message>` | Submit a server/staff review with star rating (`/review`) | Everyone |
 | `/feedback-manage setup <channel>` | Set the feedback/reviews channel | Manage Guild |
 | `/feedback-manage stats` | View overall rating score & 1⭐–5⭐ distribution breakdown | Manage Guild |
+
+### 📊 Poll System
+| Command | Description | Permission |
+|---|---|---|
+| `/poll <question> <option1> <option2> ...` | Create an interactive poll with up to 5 options & real-time progress bars | Manage Messages |
 
 ### 🛠️ Admin / Settings
 | Command | Description | Permission |

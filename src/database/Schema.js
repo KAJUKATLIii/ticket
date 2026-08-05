@@ -184,6 +184,20 @@ export function initializeDatabase(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_fb_guild ON feedbacks(guild_id);
     CREATE INDEX IF NOT EXISTS idx_fb_stars ON feedbacks(guild_id, stars);
+
+    -- ─── Poll System ───────────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS polls (
+      poll_id     TEXT PRIMARY KEY,
+      guild_id    TEXT    NOT NULL,
+      user_id     TEXT    NOT NULL,
+      channel_id  TEXT    NOT NULL,
+      message_id  TEXT,
+      question    TEXT    NOT NULL,
+      options     TEXT    NOT NULL DEFAULT '[]', -- JSON array of option strings
+      votes       TEXT    NOT NULL DEFAULT '{}', -- JSON object { userId: optionIndex }
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_polls_guild ON polls(guild_id);
   `);
 }
 

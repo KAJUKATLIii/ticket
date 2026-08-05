@@ -129,6 +129,21 @@ function mapSuggestion(row) {
   };
 }
 
+function mapPoll(row) {
+  if (!row) return null;
+  return {
+    pollId: row.poll_id,
+    guildId: row.guild_id,
+    userId: row.user_id,
+    channelId: row.channel_id,
+    messageId: row.message_id,
+    question: row.question,
+    options: parse(row.options, []),
+    votes: parse(row.votes, {}),
+    createdAt: row.created_at,
+  };
+}
+
 // ─── DatabaseManager ─────────────────────────────────────────────────────────
 
 export class DatabaseManager extends EventEmitter {
@@ -1077,6 +1092,49 @@ export class DatabaseManager extends EventEmitter {
       average: totalRow?.avg_stars ? parseFloat(totalRow.avg_stars.toFixed(2)) : 0,
       breakdown,
     };
+  }
+
+  // ── Poll System ────────────────────────────────────────────────────────────
+
+  async createPoll(guildId, userId, channelId, question, options) {
+    const pollId = `poll_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    this.db.prepare(
+      `INSERT INTO polls (poll_id, guild_id, user_id, channel_id, question, options, votes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(pollId, guildId, userId, channelId, question, json(options), '{}', now());
+
+    return this.getPoll(pollId);
+  }
+
+  async setPollMessageId(pollId, messageId) {
+    this.db.prepare("UPDATE polls SET message_id = ? WHERE poll_id = ?").run(messageId, pollId);
+    return this.getPoll(pollId);
+  }
+
+  async getPoll(pollId) {
+    const row = this.db.prepare("SELECT * FROM polls WHERE poll_id = ?").get(pollId);
+    return mapPoll(row);
+  }
+
+  async getPollByMessage(messageId) {
+    const row = this.db.prepare("SELECT * FROM polls WHERE message_id = ?").get(messageId);
+    return mapPoll(row);
+  }
+
+  async votePoll(pollId, userId, optionIndex) {
+    const poll = await this.getPoll(pollId);
+    if (!poll) return null;
+
+    const votes = { ...poll.votes };
+
+    if (votes[userId] === optionIndex) {
+      delete votes[userId];
+    } else {
+      votes[userId] = optionIndex;
+    }
+
+    this.db.prepare("UPDATE polls SET votes = ? WHERE poll_id = ?").run(json(votes), pollId);
+    return this.getPoll(pollId);
   }
 }
 
