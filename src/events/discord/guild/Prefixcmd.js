@@ -4,13 +4,7 @@
  * MIT License
  */
 
-import {
-  ContainerBuilder,
-  TextDisplayBuilder,
-  MessageFlags,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-} from "discord.js";
+import { EmbedBuilder } from "discord.js";
 import { logger } from "#utils/logger";
 import { config } from "#config/config";
 import { validateCommand } from "#utils/permissionHandler";
@@ -45,11 +39,12 @@ const getMentionPrefixRegex = (clientId) => {
 };
 
 const sendError = (message, title, description) => {
-  const container = new ContainerBuilder();
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ${emoji.cross} ${title}\n\n${description}`)
-  );
-  message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {
+  const embed = new EmbedBuilder()
+    .setColor(0xED4245)
+    .setTitle(`${emoji.cross} ${title}`)
+    .setDescription(description);
+
+  message.reply({ embeds: [embed] }).catch(() => {
     message.reply({ content: `${emoji.cross} **${title}**: ${description}` }).catch(() => {});
   });
 };
@@ -121,32 +116,14 @@ const handleMentionOnly = async (message, client) => {
     guildPrefix = config.prefix || ".";
   }
 
-  const container = new ContainerBuilder();
+  const embed = new EmbedBuilder()
+    .setColor(0x5865F2)
+    .setAuthor({ name: client.user.username, iconURL: client.user.displayAvatarURL({ dynamic: true }) })
+    .setTitle(`🤖 Server Prefix Info`)
+    .setDescription(`My prefix in **${message.guild.name}** is \`${guildPrefix}\`.\n\nUse \`${guildPrefix}help\` to view all commands!`)
+    .setFooter({ text: `Code by KAJUKATLI` });
 
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(`## ${client.user.username}\n\n`)
-  );
-
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(
-      ` **Server Prefix**\n\n` +
-      `\`${guildPrefix}\`` +
-      `\n\n-# Use \`${guildPrefix}help\` for commands`
-    )
-  );
-
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
-  );
-
-  await message.reply({
-    components: [container],
-    flags: MessageFlags.IsComponentsV2,
-  }).catch(() => {
+  await message.reply({ embeds: [embed] }).catch(() => {
     message.reply({ content: `My prefix in this server is \`${guildPrefix}\`. Use \`${guildPrefix}help\` for commands!` }).catch(() => {});
   });
 
