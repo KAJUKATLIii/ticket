@@ -821,6 +821,25 @@ export class DatabaseManager extends EventEmitter {
     return 5 * (level ** 2) + 50 * level + 100;
   }
 
+  async getLevelConfig(guildId) {
+    const row = this.db.prepare("SELECT * FROM level_config WHERE guild_id = ?").get(guildId);
+    return {
+      guildId,
+      channelId: row?.channel_id ?? null,
+      enabled: row?.enabled !== 0,
+    };
+  }
+
+  async setLevelConfig(guildId, config) {
+    const existing = await this.getLevelConfig(guildId);
+    const merged = { ...existing, ...config };
+    this.db.prepare(
+      `INSERT INTO level_config (guild_id, channel_id, enabled) VALUES (?, ?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET channel_id = excluded.channel_id, enabled = excluded.enabled`
+    ).run(guildId, merged.channelId, merged.enabled ? 1 : 0);
+    return merged;
+  }
+
   /** Get user level & XP info */
   async getUserLevel(guildId, userId) {
     const row = this.db.prepare(

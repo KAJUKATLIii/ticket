@@ -198,6 +198,13 @@ export function initializeDatabase(db) {
       created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_polls_guild ON polls(guild_id);
+
+    -- ─── Leveling Configuration ────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS level_config (
+      guild_id    TEXT PRIMARY KEY,
+      channel_id  TEXT,
+      enabled     INTEGER NOT NULL DEFAULT 1
+    );
   `);
 }
 

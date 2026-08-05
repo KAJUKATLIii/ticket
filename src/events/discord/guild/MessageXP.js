@@ -42,22 +42,36 @@ export default {
       if (result.leveledUp) {
         logger.info("Leveling", `${message.author.tag} leveled up to Level ${result.level} in ${message.guild.name}`);
 
-        const embed = new EmbedBuilder()
-          .setColor(0x5865F2)
-          .setAuthor({
-            name: `${message.author.username} Leveled Up!`,
-            iconURL: message.author.displayAvatarURL({ dynamic: true }),
-          })
-          .setDescription(`🎉 **Congratulations** ${message.author}! You reached **Level ${result.level}**!`)
-          .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
-          .addFields(
-            { name: `${emoji.stats} Total XP`, value: `\`${result.xp.toLocaleString()} XP\``, inline: true },
-            { name: `${emoji.arrow} Next Level`, value: `\`${result.nextLevelXP.toLocaleString()} XP\``, inline: true },
-          )
-          .setTimestamp();
+        const lvlCfg = await client.db.getLevelConfig(guildId);
 
-        // Send congratulation message in channel
-        await message.channel.send({ embeds: [embed] }).catch(() => {});
+        // Check if level up messages are enabled
+        if (lvlCfg.enabled !== false) {
+          const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setAuthor({
+              name: `${message.author.username} Leveled Up!`,
+              iconURL: message.author.displayAvatarURL({ dynamic: true }),
+            })
+            .setDescription(`🎉 **Congratulations** ${message.author}! You reached **Level ${result.level}**!`)
+            .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
+            .addFields(
+              { name: `${emoji.stats} Total XP`, value: `\`${result.xp.toLocaleString()} XP\``, inline: true },
+              { name: `${emoji.arrow} Next Level`, value: `\`${result.nextLevelXP.toLocaleString()} XP\``, inline: true },
+            )
+            .setTimestamp();
+
+          // Determine target channel (configured channel or current channel)
+          let targetChannel = message.channel;
+          if (lvlCfg.channelId) {
+            const ch = message.guild.channels.cache.get(lvlCfg.channelId);
+            if (ch && ch.isTextBased()) {
+              targetChannel = ch;
+            }
+          }
+
+          // Send congratulation message
+          await targetChannel.send({ embeds: [embed] }).catch(() => {});
+        }
 
         // Check for Level Role rewards
         const levelRoles = await client.db.getLevelRoles(guildId);

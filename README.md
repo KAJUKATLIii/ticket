@@ -175,7 +175,7 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 |---|---|---|
 | `/rank [user]` | Display rank card, level, XP, and progress bar | Everyone |
 | `/leaderboard` | Top 10 XP leaderboard for the server (`/top`, `/lb`) | Everyone |
-| `/leveladmin <addxp\|addrole\|roles\|reset>` | Manage user XP, role rewards, and server reset | Manage Guild |
+| `/leveladmin <addxp\|addrole\|setchannel\|roles\|reset>` | Manage user XP, level-up channel, role rewards, and server reset | Manage Guild |
 
 ### 💡 Suggestions System
 | Command | Description | Permission |

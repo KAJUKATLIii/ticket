@@ -12,18 +12,19 @@ class LevelAdminCommand extends Command {
   constructor() {
     super({
       name: "leveladmin",
-      description: "Manage leveling, XP, and level role rewards (Admin)",
-      usage: "leveladmin <addxp|addrole|removerole|reset>",
+      description: "Manage leveling, XP, channel, and level role rewards (Admin)",
+      usage: "leveladmin <addxp|addrole|setchannel|roles|reset>",
       examples: [
         "leveladmin addxp @user 500",
         "leveladmin addrole 5 @role",
+        "leveladmin setchannel #level-ups",
       ],
       userPermissions: [PermissionFlagsBits.ManageGuild],
       botPermissions: [PermissionFlagsBits.ManageRoles],
       enabledSlash: true,
       slashData: {
         name: "leveladmin",
-        description: "Manage leveling, XP, and level role rewards (Admin)",
+        description: "Manage leveling, XP, channel, and level role rewards (Admin)",
         defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
         options: [
           {
@@ -42,6 +43,30 @@ class LevelAdminCommand extends Command {
             options: [
               { name: "level", description: "Level requirement", type: 4, required: true },
               { name: "role", description: "Role to award", type: 8, required: true },
+            ],
+          },
+          {
+            name: "setchannel",
+            description: "Configure level-up announcement channel or toggle messages",
+            type: 1, // SUB_COMMAND
+            options: [
+              {
+                name: "channel",
+                description: "Select channel for level-up messages (leave empty to use current channel)",
+                type: 7, // CHANNEL
+                required: false,
+              },
+              {
+                name: "toggle",
+                description: "Turn level-up messages ON or OFF",
+                type: 3, // STRING
+                required: false,
+                choices: [
+                  { name: "🔔 Enable Level-Up Messages", value: "on" },
+                  { name: "🔕 Disable Level-Up Messages", value: "off" },
+                  { name: "💬 Reset to Current Channel", value: "current" },
+                ],
+              },
             ],
           },
           {
@@ -88,6 +113,39 @@ class LevelAdminCommand extends Command {
         });
       }
 
+      // ── Set Level-Up Channel / Toggle ──────────────────────────────────────
+      if (sub === "setchannel") {
+        const channel = ctx.interaction.options.getChannel("channel");
+        const toggle  = ctx.interaction.options.getString("toggle");
+
+        if (toggle === "off") {
+          await db.setLevelConfig(guildId, { enabled: false });
+          return ctx.reply({ content: `${emoji.closed} Level-up announcement messages have been **disabled**.` });
+        }
+
+        if (toggle === "current") {
+          await db.setLevelConfig(guildId, { channelId: null, enabled: true });
+          return ctx.reply({ content: `${emoji.check} Level-up messages will now be sent in the **channel where the member typed**.` });
+        }
+
+        if (channel) {
+          if (!channel.isTextBased()) {
+            return ctx.reply({ content: `${emoji.cross} Please select a valid text channel.`, flags: MessageFlags.Ephemeral });
+          }
+          await db.setLevelConfig(guildId, { channelId: channel.id, enabled: true });
+          return ctx.reply({ content: `${emoji.check} Level-up announcements will now be sent in ${channel}!` });
+        }
+
+        const cfg = await db.getLevelConfig(guildId);
+        const statusStr = cfg.enabled
+          ? cfg.channelId ? `channel <#${cfg.channelId}>` : "current channel where user types"
+          : "Disabled";
+
+        return ctx.reply({
+          content: `${emoji.info} Current Level-Up Config: **${statusStr}**. Use options to change channel or toggle ON/OFF.`,
+        });
+      }
+
       // ── View Level Roles ───────────────────────────────────────────────────
       if (sub === "roles") {
         const roles = await db.getLevelRoles(guildId);
@@ -114,7 +172,7 @@ class LevelAdminCommand extends Command {
       }
     } else {
       return ctx.reply({
-        content: `Use slash command \`/leveladmin <addxp|addrole|roles|reset>\``,
+        content: `Use slash command \`/leveladmin <addxp|addrole|setchannel|roles|reset>\``,
       });
     }
   }
