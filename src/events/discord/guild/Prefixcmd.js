@@ -7,20 +7,17 @@
 import {
   ContainerBuilder,
   TextDisplayBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   MessageFlags,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  ActionRowBuilder,
 } from "discord.js";
 import { logger } from "#utils/logger";
-let db;
-
 import { config } from "#config/config";
 import { validateCommand } from "#utils/permissionHandler";
 import { CommandContext } from "#classes/context";
 import { emoji } from "#config/emoji";
+
+let db;
 
 const CUSTOM_PREFIXES = {
   GLOBAL: ["yuki"],
@@ -52,7 +49,9 @@ const sendError = (message, title, description) => {
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(`## ${emoji.cross} ${title}\n\n${description}`)
   );
-  message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {});
+  message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 }).catch(() => {
+    message.reply({ content: `${emoji.cross} **${title}**: ${description}` }).catch(() => {});
+  });
 };
 
 const parseMentionPrefix = (content, clientId) => {
@@ -60,18 +59,24 @@ const parseMentionPrefix = (content, clientId) => {
   const match = content.match(regex);
   if (!match) return null;
   const parts = content.slice(match[0].length).trim().split(/\s+/);
-  return parts.length > 0 ? { parts, type: "mention" } : null;
+  return parts.length > 0 && parts[0] ? { parts, type: "mention" } : null;
 };
 
 const parseGuildPrefix = async (content, guildId) => {
-  const guildPrefix = await db.getPrefix(guildId);
+  let guildPrefix = ".";
+  try {
+    guildPrefix = (await db.getPrefix(guildId)) || config.prefix || ".";
+  } catch {
+    guildPrefix = config.prefix || ".";
+  }
+
   const lowerContent = content.toLowerCase();
 
-  
-    if (lowerContent.startsWith(guildPrefix.toLowerCase())) {
-      const parts = content.slice(guildPrefix.length).trim().split(/\s+/);
-      return parts.length > 0 ? { parts, type: "guild", guildPrefix} : null;
-    
+  if (lowerContent.startsWith(guildPrefix.toLowerCase())) {
+    const sliced = content.slice(guildPrefix.length).trim();
+    if (!sliced) return null;
+    const parts = sliced.split(/\s+/);
+    return parts.length > 0 && parts[0] ? { parts, type: "guild", guildPrefix } : null;
   }
   return null;
 };
@@ -85,8 +90,10 @@ const parseCustomPrefix = (content, userId) => {
   const lowerContent = content.toLowerCase();
   for (const prefix of allPrefixes) {
     if (lowerContent.startsWith(prefix.toLowerCase())) {
-      const parts = content.slice(prefix.length).trim().split(/\s+/);
-      return parts.length > 0 ? { parts, type: "custom" } : null;
+      const sliced = content.slice(prefix.length).trim();
+      if (!sliced) continue;
+      const parts = sliced.split(/\s+/);
+      return parts.length > 0 && parts[0] ? { parts, type: "custom" } : null;
     }
   }
   return null;
@@ -94,11 +101,12 @@ const parseCustomPrefix = (content, userId) => {
 
 const parseCommand = async (message, client) => {
   const content = message.content.trim();
+  if (!content) return null;
 
   return (
     parseMentionPrefix(content, client.user.id) ||
     (await parseGuildPrefix(content, message.guild.id)) ||
-    parseCustomPrefix(content, message.author.id) 
+    parseCustomPrefix(content, message.author.id)
   );
 };
 
@@ -106,7 +114,13 @@ const handleMentionOnly = async (message, client) => {
   const mentionRegex = getMentionRegex(client.user.id);
   if (!mentionRegex.test(message.content.trim())) return false;
 
-  const guildPrefix = await db.getPrefix(message.guild.id);
+  let guildPrefix = ".";
+  try {
+    guildPrefix = (await db.getPrefix(message.guild.id)) || config.prefix || ".";
+  } catch {
+    guildPrefix = config.prefix || ".";
+  }
+
   const container = new ContainerBuilder();
 
   container.addTextDisplayComponents(
@@ -120,7 +134,7 @@ const handleMentionOnly = async (message, client) => {
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
       ` **Server Prefix**\n\n` +
-      `${guildPrefix}`+
+      `\`${guildPrefix}\`` +
       `\n\n-# Use \`${guildPrefix}help\` for commands`
     )
   );
@@ -132,13 +146,15 @@ const handleMentionOnly = async (message, client) => {
   await message.reply({
     components: [container],
     flags: MessageFlags.IsComponentsV2,
+  }).catch(() => {
+    message.reply({ content: `My prefix in this server is \`${guildPrefix}\`. Use \`${guildPrefix}help\` for commands!` }).catch(() => {});
   });
 
   return true;
 };
 
 const getCommand = (parts, commandHandler) => {
-  if (!parts || parts.length === 0) return { command: null, args: [] };
+  if (!parts || parts.length === 0 || !parts[0]) return { command: null, args: [] };
 
   const firstPart = parts[0].toLowerCase();
 
@@ -175,14 +191,12 @@ const getCommand = (parts, commandHandler) => {
 export default {
   name: "messageCreate",
   async execute({ eventArgs, client }) {
-    db = client.db
+    db = client.db;
     const [message] = eventArgs;
     if (message.author.bot || !message.guild) return;
 
     const [isBlacklisted, mentionHandled] = await Promise.all([
-      Promise.all([
-        db.isUserBlacklisted(message.guild.id, message.author.id),
-      ]).then(([user, guild]) => user || guild),
+      db.isUserBlacklisted(message.guild.id, message.author.id).catch(() => false),
       handleMentionOnly(message, client),
     ]);
 
@@ -193,9 +207,6 @@ export default {
 
     const { command, args } = getCommand(commandInfo.parts, client.commandHandler);
     if (!command) return;
-
-    
-
 
     if (command.cooldown) {
       const cooldown = client.commandHandler.isOnCooldown(
@@ -246,9 +257,10 @@ export default {
       const displayName = Array.isArray(command.name)
         ? command.name.join(" ")
         : command.name;
-      logger.error("MessageCreate", `Error: ${displayName}`, error);
-      sendError(message, "Command Error", "An error occurred");
+      logger.error("MessageCreate", `Error executing prefix command: ${displayName}`, error);
+      sendError(message, "Command Error", "An error occurred while running this command.");
     }
   },
 };
+
 // bread async

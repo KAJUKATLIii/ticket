@@ -20,6 +20,7 @@ export class Command {
    * @param {number} [options.cooldown] - Cooldown in seconds
    * @param {Array<string>} [options.examples] - Usage examples
    * @param {Array} [options.permissions] - Required bot permissions
+   * @param {Array} [options.botPermissions] - Required bot permissions (alias)
    * @param {Array} [options.userPermissions] - Required user permissions
    * @param {boolean} [options.enabledSlash] - Enable as slash command
    * @param {Object} [options.slashData] - Slash command data
@@ -33,7 +34,8 @@ export class Command {
     this.cooldown = options.cooldown || 3;
     this.examples = options.examples || [];
 
-    this.permissions = options.permissions || [];
+    this.permissions = options.permissions || options.botPermissions || [];
+    this.botPermissions = this.permissions;
     this.userPermissions = options.userPermissions || [];
     this.enabledSlash = options.enabledSlash || false;
     this.slashData = options.slashData || null;

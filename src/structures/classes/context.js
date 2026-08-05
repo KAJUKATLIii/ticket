@@ -75,7 +75,7 @@ export class CommandContext {
   get commandName() {
     return this.isSlash
       ? this.interaction.commandName
-      : this.message.content.split(/\s+/)[0];
+      : (this.message.content.trim().split(/\s+/)[0] || "");
   }
 
   /**
@@ -105,7 +105,7 @@ export class CommandContext {
   /**
    * Replies to the command
    * @async
-   * @param {Object} options - Reply options (Discord message options)
+   * @param {Object|string} options - Reply options
    * @returns {Promise<Message>} The reply message
    */
   async reply(options) {
@@ -115,7 +115,21 @@ export class CommandContext {
       }
       return await this.interaction.reply(options);
     }
-    this._replyMessage = await this.message.reply(options);
+
+    let replyOpts = typeof options === "string" ? { content: options } : { ...options };
+
+    // Clean Ephemeral flags for standard message replies (ephemeral is interaction-only)
+    if (replyOpts.flags) {
+      if (typeof replyOpts.flags === "number") {
+        let clean = replyOpts.flags & ~64; // Strip Ephemeral (64)
+        if (clean === 0) delete replyOpts.flags;
+        else replyOpts.flags = clean;
+      } else {
+        delete replyOpts.flags;
+      }
+    }
+
+    this._replyMessage = await this.message.reply(replyOpts);
     return this._replyMessage;
   }
 
@@ -124,20 +138,20 @@ export class CommandContext {
    * @async
    * @param {Object} options - Edit options
    * @returns {Promise<Message>} The edited message
-   * @throws {Error} If no initial reply exists for prefix commands
    */
   async editReply(options) {
     if (this.isSlash) {
       return await this.interaction.editReply(options);
     }
     if (!this._replyMessage) {
-      throw new Error("Cannot edit reply: no initial reply found");
+      this._replyMessage = await this.message.reply(options);
+      return this._replyMessage;
     }
     return await this._replyMessage.edit(options);
   }
 
   /**
-   * Defers the reply (shows thinking state)
+   * Defers the reply
    * @async
    * @param {Object} [options={}] - Defer options
    * @returns {Promise<void>}
