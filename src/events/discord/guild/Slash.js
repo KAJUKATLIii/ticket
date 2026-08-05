@@ -5,53 +5,26 @@
  */
 
 import {
-  InteractionType,
-  ContainerBuilder,
-  TextDisplayBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   MessageFlags,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  SectionBuilder,
+  EmbedBuilder,
 } from "discord.js";
 import { config } from "#config/config";
 import { logger } from "#utils/logger";
 import { validateCommand } from "#utils/permissionHandler";
 import { CommandContext } from "#classes/context";
 
-
 async function _sendError(interaction, title, description, ephemeral = true) {
-  const container = new ContainerBuilder()
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`**${title}**`),
-    )
-    .addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small),
-    )
-    .addSectionComponents(
-      new SectionBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(description),
-        )
-        .setButtonAccessory(
-          new ButtonBuilder()
-            .setLabel("Support")
-            .setURL(config.links.supportServer)
-            .setStyle(ButtonStyle.Link),
-        ),
-    );
+  const embed = new EmbedBuilder()
+    .setColor(0xED4245)
+    .setTitle(`❌ ${title}`)
+    .setDescription(description);
 
   try {
-    const flags = ephemeral
-      ? MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
-      : MessageFlags.IsComponentsV2;
-    const reply = { components: [container], flags };
-
+    const options = { embeds: [embed], flags: ephemeral ? MessageFlags.Ephemeral : undefined };
     if (interaction.deferred || interaction.replied) {
-      await interaction.followUp(reply);
+      await interaction.followUp(options);
     } else {
-      await interaction.reply(reply);
+      await interaction.reply(options);
     }
   } catch (error) {
     logger.error("InteractionCreate", "Failed to send error reply.", error);
@@ -84,7 +57,6 @@ function _getCommandFile(interaction, client) {
   return client.commandHandler.slashCommandFiles.get(commandName);
 }
 
-
 async function _handleCooldown(interaction, command, client) {
   if (!command.cooldown) return { valid: true };
 
@@ -100,7 +72,7 @@ async function _handleCooldown(interaction, command, client) {
       valid: false,
       error: {
         title: "Cooldown",
-        description: `This command is on cooldown. Please wait <t:${timestamp}:R>.\nPremium users and servers get half cooldowns.`,
+        description: `This command is on cooldown. Please wait <t:${timestamp}:R>.`,
       },
     };
   }
@@ -122,7 +94,6 @@ async function handleChatInputCommand(interaction, client) {
     );
   }
 
-
   const commandToExecute = _getCommandFile(interaction, client);
   if (!commandToExecute) {
     logger.warn(
@@ -135,8 +106,6 @@ async function handleChatInputCommand(interaction, client) {
       "This command seems to be outdated or improperly configured.",
     );
   }
-
-  
 
   const cooldownValidation = await _handleCooldown(
     interaction,
@@ -167,7 +136,7 @@ async function handleChatInputCommand(interaction, client) {
   } catch (error) {
     logger.error(
       "InteractionCreate",
-      `Error executing slash command '${commandToExecute.slashData.name}'`,
+      `Error executing slash command '${commandToExecute.slashData?.name ?? interaction.commandName}'`,
       error,
     );
     await _sendError(
@@ -198,14 +167,12 @@ export default {
   async execute({ eventArgs, client }) {
     const [interaction] = eventArgs;
 
-    if (interaction.type === InteractionType.ApplicationCommand) {
+    if (interaction.isChatInputCommand()) {
       await handleChatInputCommand(interaction, client);
-    } else if (
-      interaction.type === InteractionType.ApplicationCommandAutocomplete
-    ) {
+    } else if (interaction.isAutocomplete()) {
       await handleAutocomplete(interaction, client);
     }
   },
 };
 
-// bread sync
+// bread async
