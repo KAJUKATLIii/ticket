@@ -36,36 +36,34 @@ class HelpCommand extends Command {
   }
 
   async execute({ ctx }) {
-    const botAvatarURL = ctx.client.user.displayAvatarURL({ size: 256 });
-
     const helpContent = [
       `## 🎫 TicketBot Command Directory`,
       ``,
-      `All commands are available via Slash \`/\` and Prefix \`${config.prefix}\`.`,
+      `All **19 commands** are available via Slash \`/\` and Prefix \`${config.prefix}\`.`,
       ``,
       `### 🎫 Ticket Commands`,
-      `\`add\` • \`close\` • \`delete\` • \`remove\` • \`reopen\``,
+      `${emoji.add} \`add <@user>\` • ${emoji.lock} \`close [reason]\` • ${emoji.trash} \`delete\` • ${emoji.remove} \`remove <@user>\` • ${emoji.unlock} \`reopen\``,
       ``,
       `### 📢 Welcome & Goodbye System`,
-      `\`welcome\` — *Interactive welcome embed, auto-role & leave setup*`,
+      `${emoji.bell} \`welcome\` — *Interactive panel for join/leave embeds, auto-role, DM & test preview*`,
       ``,
       `### 📊 Leveling & XP System`,
-      `\`rank\` • \`leaderboard\` (\`top\`) • \`leveladmin\``,
+      `${emoji.crown} \`rank [@user]\` • ${emoji.stats} \`leaderboard\` (\`top\`) • ${emoji.settings} \`leveladmin <addxp|addrole|roles|reset>\``,
       ``,
       `### 💡 Suggestions System`,
-      `\`suggest\` • \`suggest-manage\``,
+      `${emoji.light} \`suggest <text>\` • ${emoji.settings} \`suggest-manage <setup|accept|deny|consider>\``,
       ``,
       `### ⭐ Feedback & Reviews System`,
-      `\`feedback\` (\`review\`) • \`feedback-manage\``,
+      `${emoji.starFill} \`feedback <1-5> <message>\` (\`review\`) • ${emoji.settings} \`feedback-manage <setup|stats>\``,
       ``,
-      `### 🎨 Custom Embed Builder`,
-      `\`embed\` — *Interactive rich embed designer*`,
+      `### 📊 Interactive Poll System`,
+      `${emoji.poll} \`poll <question> <option1> <option2> ...\` — *Live voting buttons & progress bars*`,
       ``,
-      `### 📊 Poll System`,
-      `\`poll\` — *Interactive community polls (up to 5 options)*`,
+      `### 🎨 Custom Rich Embed Builder`,
+      `${emoji.note} \`embed [#channel]\` — *Interactive modal-driven embed designer & preview*`,
       ``,
-      `### 🛠️ Admin & Management`,
-      `\`panel\` • \`settings\` • \`prefix\` • \`blacklist\``,
+      `### 🛠️ Admin & Server Settings`,
+      `${emoji.dashboard} \`panel\` • ${emoji.settings} \`settings\` • ${emoji.info} \`prefix\` • ${emoji.cross} \`blacklist <add|remove|list>\``,
     ].join("\n");
 
     const container = new ContainerBuilder()
