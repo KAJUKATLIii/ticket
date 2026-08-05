@@ -5,33 +5,16 @@
  */
 
 import { Command } from "#structures/classes/Command";
-import {
-  MessageFlags,
-  ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  EmbedBuilder,
-} from "discord.js";
+import { AttachmentBuilder, MessageFlags } from "discord.js";
+import { generateRankCard } from "#utils/rankCardGenerator";
+import { logger } from "#utils/logger";
 import { emoji } from "#config/emoji";
-
-/** Generate ASCII/Unicode progress bar e.g. [██████░░░░] 60% */
-function drawProgressBar(current, total, length = 12) {
-  const percent = Math.min(Math.max(current / total, 0), 1);
-  const progress = Math.round(length * percent);
-  const empty = length - progress;
-
-  const filledBar = "█".repeat(progress);
-  const emptyBar  = "░".repeat(empty);
-
-  return `[\`${filledBar}${emptyBar}\`] **${Math.round(percent * 100)}%**`;
-}
 
 class RankCommand extends Command {
   constructor() {
     super({
       name: "rank",
-      description: "View your or another user's current level and XP rank",
+      description: "View your or another user's current level and XP rank card image",
       usage: "rank [@user]",
       examples: ["rank", "rank @user"],
       userPermissions: [],
@@ -39,7 +22,7 @@ class RankCommand extends Command {
       enabledSlash: true,
       slashData: {
         name: "rank",
-        description: "View your or another user's current level and XP rank",
+        description: "View your or another user's current level and XP rank card image",
         options: [
           {
             name: "user",
@@ -63,28 +46,33 @@ class RankCommand extends Command {
       if (mention) targetUser = mention;
     }
 
-    const rankData = await ctx.client.db.getUserRank(ctx.guild.id, targetUser.id);
-    const needed = rankData.neededXP;
-    const progress = drawProgressBar(rankData.xp, needed);
+    try {
+      const rankData = await ctx.client.db.getUserRank(ctx.guild.id, targetUser.id);
+      const neededXP = rankData.neededXP || (rankData.level + 1) * 100;
 
-    const embed = new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setAuthor({
-        name: `${targetUser.username}'s Rank Card`,
-        iconURL: targetUser.displayAvatarURL({ dynamic: true }),
-      })
-      .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
-      .addFields(
-        { name: `${emoji.crown} Rank`,        value: `#${rankData.rank}`,                           inline: true },
-        { name: `${emoji.starFill} Level`,   value: `**Level ${rankData.level}**`,                 inline: true },
-        { name: `${emoji.stats} Total XP`,    value: `\`${rankData.xp.toLocaleString()} XP\``,       inline: true },
-        { name: `${emoji.note} Messages`,    value: `\`${rankData.messages.toLocaleString()}\``,    inline: true },
-        { name: `${emoji.arrow} Level Progress`, value: `${progress}\n\`${rankData.xp} / ${needed} XP\``, inline: false },
-      )
-      .setFooter({ text: ctx.guild.name, iconURL: ctx.guild.iconURL({ dynamic: true }) ?? undefined })
-      .setTimestamp();
+      const avatarURL = targetUser.displayAvatarURL({ extension: "png", size: 256 });
 
-    return ctx.reply({ embeds: [embed] });
+      const imageBuffer = await generateRankCard({
+        username: targetUser.username,
+        avatarURL,
+        level: rankData.level,
+        xp: rankData.xp,
+        requiredXP: neededXP,
+        rank: rankData.rank,
+        messages: rankData.messages,
+        serverName: ctx.guild.name,
+      });
+
+      const attachment = new AttachmentBuilder(imageBuffer, { name: `rank-${targetUser.id}.png` });
+
+      return ctx.reply({ files: [attachment] });
+    } catch (err) {
+      logger.error("Rank", `Failed to generate rank card image for ${targetUser.tag}`, err);
+      return ctx.reply({
+        content: `${emoji.cross} Failed to generate rank card image: ${err.message}`,
+        flags: MessageFlags.Ephemeral,
+      });
+    }
   }
 }
 
