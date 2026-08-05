@@ -19,8 +19,10 @@
 
 # 🎫 TicketBot
 
-**A powerful, zero-dependency Discord ticket management system.**  
+**A powerful, zero-dependency Discord ticket management & community system.**  
 Built with Discord.js v14, Component V2 UI, and a local SQLite database — no MongoDB, no cloud setup required.
+
+*Default Activity Status:* `Watching tickets for insane community`
 
 </div>
 
@@ -38,15 +40,17 @@ Built with Discord.js v14, Component V2 UI, and a local SQLite database — no M
 | **Transcripts** | HTML transcript export on ticket close |
 | **Control Panel** | Per-ticket embedded control message |
 
-### 📢 Welcome System *(New in v2.0)*
+### 📢 Advanced Welcome & Goodbye System
 | Feature | Description |
 |---|---|
 | **Channel Welcome** | Send a rich embed when someone joins |
 | **DM Welcome** | Optionally DM the new member |
 | **Auto-Role** | Automatically assign a role on join |
 | **Custom Message** | Fully customizable message with placeholders |
-| **Embed Color** | Set a hex color per server |
-| **Interactive Setup** | Configure everything via `/welcome` button panel |
+| **Custom Banner** | Support for image / GIF banner URLs |
+| **Ping & React** | Toggle `@user` pings & auto 👋 emoji reactions |
+| **Live Test Preview** | Instant live preview button in `/welcome` config panel |
+| **Goodbye System** | Send a goodbye embed when a member leaves |
 
 ### 🛠️ Admin & Settings
 - Multi-panel support with separate categories per panel
@@ -54,7 +58,7 @@ Built with Discord.js v14, Component V2 UI, and a local SQLite database — no M
 - Per-server prefix customization
 - User blacklist system
 - Detailed ticket logs (create, close, delete, add, remove, rate)
-- Settings dashboard via `/settings`
+- Interactive settings dashboard via `/settings` and `/welcome`
 
 ### 🚀 Technical
 - **SQLite** — embedded database, zero server setup, single `.db` file
@@ -73,7 +77,7 @@ src/
 │   ├── Admin/          # Blacklist, Prefix
 │   ├── Help/           # Help command
 │   ├── Panel/          # Panel management
-│   ├── Settings/       # Settings dashboard, Welcome config
+│   ├── Settings/       # Settings dashboard, Welcome config (/welcome)
 │   └── Ticket/         # Add, Close, Delete, Remove, Reopen
 ├── config/
 │   ├── config.js       # Bot config & env vars
@@ -83,9 +87,10 @@ src/
 │   └── Manager.js      # All database operations
 ├── events/
 │   └── discord/
-│       ├── clientReady.js
-│       ├── guild/      # Slash, PrefixCmd, ChannelDelete, GuildMemberAdd
-│       └── ticket/     # Create, Closed, Deleted, Added, Removed, Rated, Reopen
+│       ├── clientReady.js  # Startup & slash command loader
+│       ├── ready.js        # Bot presence activity handler
+│       ├── guild/          # Slash, PrefixCmd, ChannelDelete, GuildMemberAdd, GuildMemberRemove
+│       └── ticket/         # Create, Closed, Deleted, Added, Removed, Rated, Reopen
 ├── structures/
 │   ├── classes/        # Bot, Command, Context, TicketUI
 │   └── handlers/       # CommandHandler, EventLoader
@@ -116,7 +121,7 @@ npm install
 
 **3. Configure environment**
 
-Create a `.env` file in the project root:
+Create a `.env` file in the project root (or copy `.env.example`):
 ```env
 # ── Discord ──────────────────────────────
 token=your_bot_token_here
@@ -165,15 +170,15 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 |---|---|---|
 | `/panel` | Create & manage ticket panels | Manage Guild |
 | `/settings` | Configure bot settings | Manage Guild |
-| `/welcome` | Configure the welcome system | Manage Guild |
+| `/welcome` | Interactive welcome/goodbye system panel | Manage Guild |
 | `/help` | Show all commands | Everyone |
 
 ### 📢 Welcome Placeholders
-Use these in your custom welcome message:
+Use these in your custom welcome and goodbye messages:
 
 | Placeholder | Output |
 |---|---|
-| `{user}` | @mention of the new member |
+| `{user}` | @mention of the member |
 | `{username}` | Username (e.g. `KAJUKATLI`) |
 | `{displayname}` | Server display name |
 | `{server}` | Server name |
@@ -189,7 +194,7 @@ Welcome {user} to **{server}**! 🎉 You are our #{membercount} member.
 
 ## 🗄️ Database
 
-TicketBot v2.0 uses **SQLite** via `sql.js` — a WebAssembly build with zero native compilation required.
+TicketBot uses **SQLite** via `sql.js` — a WebAssembly build with zero native compilation required.
 
 | Table | Purpose |
 |---|---|
@@ -206,24 +211,12 @@ TicketBot v2.0 uses **SQLite** via `sql.js` — a WebAssembly build with zero na
 ## 📜 Changelog
 
 ### v2.0.0 *(Current)*
-- 🆕 **Welcome system** — channel message, DM, auto-role, custom message, embed color
-- 🔄 **Database migration** — MongoDB/Mongoose → SQLite (no server required)
-- 🎨 **Emoji overhaul** — all Unicode, no custom server emojis needed
-- 🛡️ **Copyright updated** — © 2026 KAJUKATlii
+- 🆕 **Enhanced Welcome & Goodbye System** — channel embed, DM, auto-role, banner image, ping toggle, auto-react, live preview, leave notifications
+- 🤖 **Custom Bot Presence** — `Watching tickets for insane community` via `ready.js`
+- 🔄 **Database Migration** — MongoDB/Mongoose → SQLite (no server required)
+- 🎨 **Emoji Overhaul** — all Unicode, no custom server emojis needed
+- 🛡️ **Author & Credits Updated** — © 2026 KAJUKATlii / KAJUKATLI
 - ⚡ **Performance** — WAL mode SQLite, prepared statements throughout
-
-### v1.x
-- Initial release with MongoDB backend
-- Ticket creation, management, ratings, transcripts
-- Panel system with multi-category support
-
----
-
-## ⚠️ Important Notes
-
-- **Keep your `.env` private** — never commit tokens to GitHub
-- **Bot permissions needed:** `Send Messages`, `Manage Channels`, `Manage Roles`, `Read Message History`, `Embed Links`, `Attach Files`
-- **Intents required:** `Guilds`, `Guild Members`, `Guild Messages`, `Message Content`
 
 ---
 
