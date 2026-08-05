@@ -1180,6 +1180,87 @@ export class DatabaseManager extends EventEmitter {
     this.db.prepare("UPDATE polls SET votes = ? WHERE poll_id = ?").run(json(votes), pollId);
     return this.getPoll(pollId);
   }
+
+  // ── Birthday System ────────────────────────────────────────────────────────
+
+  async getBirthdayConfig(guildId) {
+    const row = this.db.prepare("SELECT * FROM birthday_config WHERE guild_id = ?").get(guildId);
+    return {
+      guildId,
+      channelId: row?.channel_id ?? null,
+      roleId: row?.role_id ?? null,
+      enabled: row?.enabled !== 0,
+    };
+  }
+
+  async setBirthdayConfig(guildId, config) {
+    const existing = await this.getBirthdayConfig(guildId);
+    const merged = { ...existing, ...config };
+    this.db.prepare(
+      `INSERT INTO birthday_config (guild_id, channel_id, role_id, enabled) VALUES (?, ?, ?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET
+         channel_id = excluded.channel_id,
+         role_id = excluded.role_id,
+         enabled = excluded.enabled`
+    ).run(guildId, merged.channelId, merged.roleId, merged.enabled ? 1 : 0);
+    return merged;
+  }
+
+  async setBirthday(guildId, userId, { month, day, year }) {
+    this.db.prepare(
+      `INSERT INTO birthdays (guild_id, user_id, month, day, year) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id, user_id) DO UPDATE SET
+         month = excluded.month,
+         day = excluded.day,
+         year = excluded.year`
+    ).run(guildId, userId, month, day, year ?? null);
+    return this.getBirthday(guildId, userId);
+  }
+
+  async getBirthday(guildId, userId) {
+    const r = this.db.prepare("SELECT * FROM birthdays WHERE guild_id = ? AND user_id = ?").get(guildId, userId);
+    if (!r) return null;
+    return {
+      guildId: r.guild_id,
+      userId: r.user_id,
+      month: r.month,
+      day: r.day,
+      year: r.year,
+      lastCelebratedYear: r.last_celebrated_year,
+    };
+  }
+
+  async removeBirthday(guildId, userId) {
+    this.db.prepare("DELETE FROM birthdays WHERE guild_id = ? AND user_id = ?").run(guildId, userId);
+  }
+
+  async getTodayBirthdays(month, day) {
+    const rows = this.db.prepare("SELECT * FROM birthdays WHERE month = ? AND day = ?").all(month, day);
+    return rows.map(r => ({
+      guildId: r.guild_id,
+      userId: r.user_id,
+      month: r.month,
+      day: r.day,
+      year: r.year,
+      lastCelebratedYear: r.last_celebrated_year,
+    }));
+  }
+
+  async getGuildBirthdays(guildId) {
+    const rows = this.db.prepare("SELECT * FROM birthdays WHERE guild_id = ? ORDER BY month ASC, day ASC").all(guildId);
+    return rows.map(r => ({
+      guildId: r.guild_id,
+      userId: r.user_id,
+      month: r.month,
+      day: r.day,
+      year: r.year,
+      lastCelebratedYear: r.last_celebrated_year,
+    }));
+  }
+
+  async setBirthdayCelebratedYear(guildId, userId, year) {
+    this.db.prepare("UPDATE birthdays SET last_celebrated_year = ? WHERE guild_id = ? AND user_id = ?").run(year, guildId, userId);
+  }
 }
 
 export const createDatabaseManager = (client) => new DatabaseManager(client);

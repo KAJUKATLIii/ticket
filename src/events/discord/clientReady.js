@@ -7,6 +7,7 @@
 import { ActivityType, REST, Routes } from "discord.js";
 import { logger } from "#utils/logger";
 import { config } from "#config/config";
+import { initBirthdayChecker } from "#utils/birthdayChecker";
 
 export default {
   name: "clientReady",
@@ -20,6 +21,9 @@ export default {
       type: ActivityType.Watching,
     });
     logger.info("Bot", "Activity set: Watching tickets for insane community");
+
+    // Initialize Birthday Checker task
+    initBirthdayChecker(client);
 
     try {
       const slashCommandsData =

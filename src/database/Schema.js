@@ -209,6 +209,26 @@ export function initializeDatabase(db) {
       xp_per_level  INTEGER NOT NULL DEFAULT 100,
       xp_rate       REAL NOT NULL DEFAULT 1.0
     );
+
+    -- ─── Birthday System ───────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS birthday_config (
+      guild_id    TEXT PRIMARY KEY,
+      channel_id  TEXT,
+      role_id     TEXT,
+      enabled     INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS birthdays (
+      guild_id              TEXT    NOT NULL,
+      user_id               TEXT    NOT NULL,
+      day                   INTEGER NOT NULL,
+      month                 INTEGER NOT NULL,
+      year                  INTEGER,
+      last_celebrated_year INTEGER,
+      created_at            TEXT    NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (guild_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_bday_guild_date ON birthdays(guild_id, month, day);
   `);
 
   // ─── Automatic Schema Migrations ───────────────────────────────────────────
