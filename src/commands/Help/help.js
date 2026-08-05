@@ -14,16 +14,15 @@ import {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
-  SectionBuilder,
-  ThumbnailBuilder,
 } from "discord.js";
 import { config } from "#config/config";
+import { emoji } from "#config/emoji";
 
 class HelpCommand extends Command {
   constructor() {
     super({
       name: "help",
-      description: "Show all available commands",
+      description: "Show all available commands and features",
       usage: "help",
       examples: ["help"],
       userPermissions: [],
@@ -31,7 +30,7 @@ class HelpCommand extends Command {
       enabledSlash: true,
       slashData: {
         name: "help",
-        description: "Show all available commands",
+        description: "Show all available commands and features",
       },
     });
   }
@@ -39,68 +38,57 @@ class HelpCommand extends Command {
   async execute({ ctx }) {
     const botAvatarURL = ctx.client.user.displayAvatarURL({ size: 256 });
 
+    const helpContent = [
+      `## 🎫 TicketBot Command Directory`,
+      ``,
+      `All commands are available via Slash \`/\` and Prefix \`${config.prefix}\`.`,
+      ``,
+      `### 🎫 Ticket Commands`,
+      `\`add\` • \`close\` • \`delete\` • \`remove\` • \`reopen\``,
+      ``,
+      `### 📢 Welcome & Goodbye System`,
+      `\`welcome\` — *Interactive welcome embed, auto-role & leave setup*`,
+      ``,
+      `### 📊 Leveling & XP System`,
+      `\`rank\` • \`leaderboard\` (\`top\`) • \`leveladmin\``,
+      ``,
+      `### 💡 Suggestions System`,
+      `\`suggest\` • \`suggest-manage\``,
+      ``,
+      `### ⭐ Feedback & Reviews System`,
+      `\`feedback\` (\`review\`) • \`feedback-manage\``,
+      ``,
+      `### 🎨 Custom Embed Builder`,
+      `\`embed\` — *Interactive rich embed designer*`,
+      ``,
+      `### 🛠️ Admin & Management`,
+      `\`panel\` • \`settings\` • \`prefix\` • \`blacklist\``,
+    ].join("\n");
+
     const container = new ContainerBuilder()
       .addTextDisplayComponents(
-        (textDisplay) => textDisplay.setContent("## Help Panel")
+        new TextDisplayBuilder().setContent(helpContent)
       )
       .addSeparatorComponents(
-        (separator) =>
-          separator
-            .setSpacing(SeparatorSpacingSize.Small)
-            .setDivider(true)
-      )
-      .addTextDisplayComponents(
-        (textDisplay) =>
-          textDisplay.setContent(
-            "Available commands in the bot are listed below."
-          ),
-        (textDisplay) =>
-          textDisplay.setContent(
-            "-# All commands are available as both prefix and slash."
-          )
-      )
-      .addSeparatorComponents(
-        (separator) => separator.setSpacing(SeparatorSpacingSize.Small)
-      )
-      .addSectionComponents(
-        (section) =>
-          section
-            .addTextDisplayComponents(
-              (textDisplay) =>
-                textDisplay.setContent(
-                  "`add` , `close` , `delete` , `remove` , `reopen` , `panel` , `settings` , `prefix` , `blacklist add` , `blacklist remove` , `blacklist list`"
-                )
-            )
-            .setThumbnailAccessory(
-              (thumbnail) =>
-                thumbnail.setURL(botAvatarURL)
-            )
-      )
-      .addSeparatorComponents(
-        (separator) =>
-          separator
-            .setSpacing(SeparatorSpacingSize.Small)
-            .setDivider(true)
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small).setDivider(true)
       )
       .addActionRowComponents(
-        (actionRow) =>
-          actionRow.addComponents(
-            new ButtonBuilder()
-              .setLabel("Support Server")
-              .setStyle(ButtonStyle.Link)
-              .setURL(config.links.supportServer),
-            new ButtonBuilder()
-              .setLabel("GitHub")
-              .setStyle(ButtonStyle.Link)
-              .setURL(config.links.github)
-          )
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel("Support Server")
+            .setStyle(ButtonStyle.Link)
+            .setURL(config.links.supportServer),
+          new ButtonBuilder()
+            .setLabel("GitHub Repository")
+            .setStyle(ButtonStyle.Link)
+            .setURL(config.links.github)
+        )
       )
       .addSeparatorComponents(
-        (separator) => separator.setSpacing(SeparatorSpacingSize.Small)
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
       )
       .addTextDisplayComponents(
-        (textDisplay) =>
-          textDisplay.setContent("-# © KAJUKATLI")
+        new TextDisplayBuilder().setContent("-# © 2026 KAJUKATLI — TicketBot v2.0")
       );
 
     await ctx.reply({
@@ -111,3 +99,4 @@ class HelpCommand extends Command {
 }
 
 export default new HelpCommand();
+// bread end

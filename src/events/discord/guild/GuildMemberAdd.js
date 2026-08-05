@@ -6,7 +6,7 @@
 
 import { EmbedBuilder } from "discord.js";
 import { logger } from "#utils/logger";
-import { resolvePlaceholders, buildWelcomeEmbed } from "#commands/Settings/Welcome";
+import { resolvePlaceholders, buildWelcomeEmbed } from "#commands/Welcome/Welcome";
 
 export default {
   name: "guildMemberAdd",

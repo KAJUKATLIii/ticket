@@ -74,11 +74,15 @@ Built with Discord.js v14, Component V2 UI, and a local SQLite database — no M
 ```
 src/
 ├── commands/
-│   ├── Admin/          # Blacklist, Prefix
+│   ├── Admin/          # Blacklist, Prefix, Embed
+│   ├── Feedback/       # Feedback, FeedbackAdmin
 │   ├── Help/           # Help command
+│   ├── Leveling/       # Rank, Leaderboard, LevelAdmin
 │   ├── Panel/          # Panel management
-│   ├── Settings/       # Settings dashboard, Welcome config (/welcome)
-│   └── Ticket/         # Add, Close, Delete, Remove, Reopen
+│   ├── Settings/       # Settings dashboard
+│   ├── Suggestions/    # Suggest, SuggestAdmin
+│   ├── Ticket/         # Add, Close, Delete, Remove, Reopen
+│   └── Welcome/        # Welcome config (/welcome)
 ├── config/
 │   ├── config.js       # Bot config & env vars
 │   └── emoji.js        # Emoji map (Unicode + helpers)

@@ -7,7 +7,7 @@
 import { EmbedBuilder } from "discord.js";
 import { logger } from "#utils/logger";
 import { emoji } from "#config/emoji";
-import { resolvePlaceholders } from "#commands/Settings/Welcome";
+import { resolvePlaceholders } from "#commands/Welcome/Welcome";
 
 export default {
   name: "guildMemberRemove",
