@@ -8,7 +8,7 @@ import { mkdirSync } from "fs";
 import { dirname } from "path";
 
 /**
- * Initializes all database tables.
+ * Initializes all database tables and executes migrations for existing databases.
  * @param {import('better-sqlite3').Database} db
  */
 export function initializeDatabase(db) {
@@ -210,6 +210,32 @@ export function initializeDatabase(db) {
       xp_rate       REAL NOT NULL DEFAULT 1.0
     );
   `);
+
+  // ─── Automatic Schema Migrations ───────────────────────────────────────────
+  try {
+    const levelConfigCols = db.pragma("table_info(level_config)").map(c => c.name);
+    if (levelConfigCols.length > 0) {
+      if (!levelConfigCols.includes("xp_channel_id")) {
+        db.exec("ALTER TABLE level_config ADD COLUMN xp_channel_id TEXT;");
+      }
+      if (!levelConfigCols.includes("max_level")) {
+        db.exec("ALTER TABLE level_config ADD COLUMN max_level INTEGER NOT NULL DEFAULT 50;");
+      }
+      if (!levelConfigCols.includes("xp_per_level")) {
+        db.exec("ALTER TABLE level_config ADD COLUMN xp_per_level INTEGER NOT NULL DEFAULT 100;");
+      }
+      if (!levelConfigCols.includes("xp_rate")) {
+        db.exec("ALTER TABLE level_config ADD COLUMN xp_rate REAL NOT NULL DEFAULT 1.0;");
+      }
+    }
+
+    const guildCols = db.pragma("table_info(guilds)").map(c => c.name);
+    if (guildCols.length > 0 && !guildCols.includes("welcome")) {
+      db.exec("ALTER TABLE guilds ADD COLUMN welcome TEXT NOT NULL DEFAULT '{}';");
+    }
+  } catch {
+    // Migration fallback
+  }
 }
 
 /**
