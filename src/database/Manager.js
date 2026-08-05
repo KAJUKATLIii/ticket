@@ -779,6 +779,128 @@ export class DatabaseManager extends EventEmitter {
     this.db.prepare("UPDATE guilds SET welcome = '{}', updated_at = ? WHERE guild_id = ?")
       .run(now(), guildId);
   }
+
+  // ── Leveling System ────────────────────────────────────────────────────────
+
+  /** Calculate total XP required to reach next level */
+  getXPForLevel(level) {
+    return 5 * (level ** 2) + 50 * level + 100;
+  }
+
+  /** Get user level & XP info */
+  async getUserLevel(guildId, userId) {
+    const row = this.db.prepare(
+      "SELECT * FROM user_levels WHERE guild_id = ? AND user_id = ?"
+    ).get(guildId, userId);
+
+    if (!row) {
+      return {
+        guildId,
+        userId,
+        xp: 0,
+        level: 0,
+        messages: 0,
+        lastXpAt: null,
+      };
+    }
+
+    return {
+      guildId: row.guild_id,
+      userId: row.user_id,
+      xp: row.xp,
+      level: row.level,
+      messages: row.messages,
+      lastXpAt: row.last_xp_at,
+    };
+  }
+
+  /** Add XP to a user and check for level-up. */
+  async addXP(guildId, userId, amount = 15) {
+    const current = await this.getUserLevel(guildId, userId);
+    const newXP = current.xp + amount;
+    const newMessages = current.messages + 1;
+
+    let newLevel = current.level;
+    let needed = this.getXPForLevel(newLevel);
+
+    while (newXP >= needed) {
+      newLevel++;
+      needed += this.getXPForLevel(newLevel);
+    }
+
+    const leveledUp = newLevel > current.level;
+
+    this.db.prepare(
+      `INSERT INTO user_levels (guild_id, user_id, xp, level, messages, last_xp_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(guild_id, user_id) DO UPDATE SET
+         xp = excluded.xp,
+         level = excluded.level,
+         messages = excluded.messages,
+         last_xp_at = excluded.last_xp_at`
+    ).run(guildId, userId, newXP, newLevel, newMessages, now());
+
+    return {
+      guildId,
+      userId,
+      xp: newXP,
+      level: newLevel,
+      oldLevel: current.level,
+      leveledUp,
+      messages: newMessages,
+      nextLevelXP: this.getXPForLevel(newLevel),
+    };
+  }
+
+  /** Get top leaderboard users for a server */
+  async getLeaderboard(guildId, limit = 10) {
+    const rows = this.db.prepare(
+      "SELECT * FROM user_levels WHERE guild_id = ? ORDER BY xp DESC LIMIT ?"
+    ).all(guildId, limit);
+
+    return rows.map((r, i) => ({
+      rank: i + 1,
+      userId: r.user_id,
+      xp: r.xp,
+      level: r.level,
+      messages: r.messages,
+    }));
+  }
+
+  /** Get user's rank position in server */
+  async getUserRank(guildId, userId) {
+    const user = await this.getUserLevel(guildId, userId);
+    const countRow = this.db.prepare(
+      "SELECT COUNT(*) AS c FROM user_levels WHERE guild_id = ? AND xp > ?"
+    ).get(guildId, user.xp);
+
+    return {
+      ...user,
+      rank: (countRow?.c ?? 0) + 1,
+      neededXP: this.getXPForLevel(user.level),
+    };
+  }
+
+  /** Level Role Rewards */
+  async setLevelRole(guildId, level, roleId) {
+    this.db.prepare(
+      `INSERT INTO level_roles (guild_id, level, role_id) VALUES (?, ?, ?)`
+    ).run(guildId, level, roleId);
+  }
+
+  async getLevelRoles(guildId) {
+    return this.db.prepare(
+      "SELECT level, role_id FROM level_roles WHERE guild_id = ? ORDER BY level ASC"
+    ).all(guildId).map(r => ({ level: r.level, roleId: r.role_id }));
+  }
+
+  async removeLevelRole(guildId, level) {
+    this.db.prepare("DELETE FROM level_roles WHERE guild_id = ? AND level = ?").run(guildId, level);
+  }
+
+  async resetGuildLevels(guildId) {
+    this.db.prepare("DELETE FROM user_levels WHERE guild_id = ?").run(guildId);
+  }
 }
 
 export const createDatabaseManager = (client) => new DatabaseManager(client);

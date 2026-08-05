@@ -165,6 +165,13 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 | `/remove <user>` | Remove a user from the ticket |
 | `/reopen` | Reopen a closed ticket |
 
+### 📊 Leveling & XP System
+| Command | Description | Permission |
+|---|---|---|
+| `/rank [user]` | Display rank card, level, XP, and progress bar | Everyone |
+| `/leaderboard` | Top 10 XP leaderboard for the server (`/top`, `/lb`) | Everyone |
+| `/leveladmin <addxp\|addrole\|roles\|reset>` | Manage user XP, role rewards, and server reset | Manage Guild |
+
 ### 🛠️ Admin / Settings
 | Command | Description | Permission |
 |---|---|---|

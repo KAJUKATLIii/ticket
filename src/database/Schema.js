@@ -117,6 +117,27 @@ export function initializeDatabase(db) {
       removed_at  TEXT    NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_removed_ticket ON ticket_removed_users(ticket_id);
+
+    -- ─── User Levels & Experience ──────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS user_levels (
+      guild_id    TEXT    NOT NULL,
+      user_id     TEXT    NOT NULL,
+      xp          INTEGER NOT NULL DEFAULT 0,
+      level       INTEGER NOT NULL DEFAULT 0,
+      messages    INTEGER NOT NULL DEFAULT 0,
+      last_xp_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (guild_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_levels_guild_xp ON user_levels(guild_id, xp DESC);
+
+    -- ─── Level Role Rewards ────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS level_roles (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id  TEXT    NOT NULL,
+      level     INTEGER NOT NULL,
+      role_id   TEXT    NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_level_roles_guild ON level_roles(guild_id, level);
   `);
 }
 
