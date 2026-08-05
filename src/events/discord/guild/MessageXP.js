@@ -22,18 +22,25 @@ export default {
 
     const guildId = message.guild.id;
     const userId  = message.author.id;
-    const key     = `${guildId}_${userId}`;
-
-    const lastTime = xpCooldowns.get(key);
-    const nowTime  = Date.now();
-
-    if (lastTime && nowTime - lastTime < COOLDOWN_MS) {
-      return; // On cooldown
-    }
-
-    xpCooldowns.set(key, nowTime);
 
     try {
+      const lvlCfg = await client.db.getLevelConfig(guildId);
+
+      // If a specific XP channel is set, only award XP for messages in that channel
+      if (lvlCfg.xpChannelId && lvlCfg.xpChannelId !== message.channel.id) {
+        return;
+      }
+
+      const key      = `${guildId}_${userId}`;
+      const lastTime = xpCooldowns.get(key);
+      const nowTime  = Date.now();
+
+      if (lastTime && nowTime - lastTime < COOLDOWN_MS) {
+        return; // On cooldown
+      }
+
+      xpCooldowns.set(key, nowTime);
+
       // Award random XP between 15 and 25
       const xpGained = Math.floor(Math.random() * 11) + 15;
       const result   = await client.db.addXP(guildId, userId, xpGained);
@@ -41,8 +48,6 @@ export default {
       // Handle Level Up
       if (result.leveledUp) {
         logger.info("Leveling", `${message.author.tag} leveled up to Level ${result.level} in ${message.guild.name}`);
-
-        const lvlCfg = await client.db.getLevelConfig(guildId);
 
         // Check if level up messages are enabled
         if (lvlCfg.enabled !== false) {

@@ -201,12 +201,13 @@ export function initializeDatabase(db) {
 
     -- ─── Leveling Configuration ────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS level_config (
-      guild_id     TEXT PRIMARY KEY,
-      channel_id   TEXT,
-      enabled      INTEGER NOT NULL DEFAULT 1,
-      max_level    INTEGER NOT NULL DEFAULT 50,
-      xp_per_level INTEGER NOT NULL DEFAULT 100,
-      xp_rate      REAL NOT NULL DEFAULT 1.0
+      guild_id      TEXT PRIMARY KEY,
+      channel_id    TEXT,
+      xp_channel_id TEXT,
+      enabled       INTEGER NOT NULL DEFAULT 1,
+      max_level     INTEGER NOT NULL DEFAULT 50,
+      xp_per_level  INTEGER NOT NULL DEFAULT 100,
+      xp_rate       REAL NOT NULL DEFAULT 1.0
     );
   `);
 }

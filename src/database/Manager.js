@@ -826,6 +826,7 @@ export class DatabaseManager extends EventEmitter {
     return {
       guildId,
       channelId: row?.channel_id ?? null,
+      xpChannelId: row?.xp_channel_id ?? null,
       enabled: row?.enabled !== 0,
       maxLevel: row?.max_level ?? 50,
       xpPerLevel: row?.xp_per_level ?? 100,
@@ -837,9 +838,10 @@ export class DatabaseManager extends EventEmitter {
     const existing = await this.getLevelConfig(guildId);
     const merged = { ...existing, ...config };
     this.db.prepare(
-      `INSERT INTO level_config (guild_id, channel_id, enabled, max_level, xp_per_level, xp_rate) VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO level_config (guild_id, channel_id, xp_channel_id, enabled, max_level, xp_per_level, xp_rate) VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(guild_id) DO UPDATE SET
          channel_id = excluded.channel_id,
+         xp_channel_id = excluded.xp_channel_id,
          enabled = excluded.enabled,
          max_level = excluded.max_level,
          xp_per_level = excluded.xp_per_level,
@@ -847,6 +849,7 @@ export class DatabaseManager extends EventEmitter {
     ).run(
       guildId,
       merged.channelId,
+      merged.xpChannelId,
       merged.enabled ? 1 : 0,
       merged.maxLevel ?? 50,
       merged.xpPerLevel ?? 100,

@@ -12,11 +12,11 @@ class LevelAdminCommand extends Command {
   constructor() {
     super({
       name: "leveladmin",
-      description: "Manage leveling, XP, channel, level progression, and role rewards (Admin)",
-      usage: "leveladmin <addxp|addrole|setchannel|setprogression|roles|reset>",
+      description: "Manage leveling, XP, channels, level progression, and role rewards (Admin)",
+      usage: "leveladmin <addxp|addrole|setchannel|setxpchannel|setprogression|roles|reset>",
       examples: [
         "leveladmin addxp @user 500",
-        "leveladmin addrole 5 @role",
+        "leveladmin setxpchannel #level-zone",
         "leveladmin setprogression maxlevel:50 xprate:1.5",
       ],
       userPermissions: [PermissionFlagsBits.ManageGuild],
@@ -24,7 +24,7 @@ class LevelAdminCommand extends Command {
       enabledSlash: true,
       slashData: {
         name: "leveladmin",
-        description: "Manage leveling, XP, channel, level progression, and role rewards (Admin)",
+        description: "Manage leveling, XP, channels, level progression, and role rewards (Admin)",
         defaultMemberPermissions: PermissionFlagsBits.ManageGuild,
         options: [
           {
@@ -65,6 +65,28 @@ class LevelAdminCommand extends Command {
                   { name: "🔔 Enable Level-Up Messages", value: "on" },
                   { name: "🔕 Disable Level-Up Messages", value: "off" },
                   { name: "💬 Reset to Current Channel", value: "current" },
+                ],
+              },
+            ],
+          },
+          {
+            name: "setxpchannel",
+            description: "Restrict XP earning to a specific channel only (or allow all channels)",
+            type: 1, // SUB_COMMAND
+            options: [
+              {
+                name: "channel",
+                description: "Select channel where members earn XP",
+                type: 7, // CHANNEL
+                required: false,
+              },
+              {
+                name: "mode",
+                description: "Reset to allow XP in all channels",
+                type: 3, // STRING
+                required: false,
+                choices: [
+                  { name: "🌐 Allow XP in ALL Channels", value: "all" },
                 ],
               },
             ],
@@ -123,7 +145,7 @@ class LevelAdminCommand extends Command {
         });
       }
 
-      // ── Set Level-Up Channel / Toggle ──────────────────────────────────────
+      // ── Set Level-Up Announcement Channel ─────────────────────────────────
       if (sub === "setchannel") {
         const channel = ctx.interaction.options.getChannel("channel");
         const toggle  = ctx.interaction.options.getString("toggle");
@@ -152,8 +174,31 @@ class LevelAdminCommand extends Command {
           : "Disabled";
 
         return ctx.reply({
-          content: `${emoji.info} Current Level-Up Config: **${statusStr}**.`,
+          content: `${emoji.info} Current Level-Up Announcement Config: **${statusStr}**.`,
         });
+      }
+
+      // ── Set XP Allowed Channel ─────────────────────────────────────────────
+      if (sub === "setxpchannel") {
+        const channel = ctx.interaction.options.getChannel("channel");
+        const mode = ctx.interaction.options.getString("mode");
+
+        if (mode === "all") {
+          await db.setLevelConfig(guildId, { xpChannelId: null });
+          return ctx.reply({ content: `${emoji.check} Members can now earn XP by chatting in **ALL text channels**.` });
+        }
+
+        if (channel) {
+          if (!channel.isTextBased()) {
+            return ctx.reply({ content: `${emoji.cross} Please select a valid text channel.`, flags: MessageFlags.Ephemeral });
+          }
+          await db.setLevelConfig(guildId, { xpChannelId: channel.id });
+          return ctx.reply({ content: `${emoji.check} XP earning is now restricted **ONLY** to ${channel}! Messages in other channels will not award XP.` });
+        }
+
+        const cfg = await db.getLevelConfig(guildId);
+        const xpChStr = cfg.xpChannelId ? `<#${cfg.xpChannelId}>` : "All Channels";
+        return ctx.reply({ content: `${emoji.info} Current XP Channel restriction: **${xpChStr}**.` });
       }
 
       // ── Set Progression / Max Level / XP Rate ──────────────────────────────
@@ -212,7 +257,7 @@ class LevelAdminCommand extends Command {
       }
     } else {
       return ctx.reply({
-        content: `Use slash command \`/leveladmin <addxp|addrole|setchannel|setprogression|roles|reset>\``,
+        content: `Use slash command \`/leveladmin <addxp|addrole|setchannel|setxpchannel|setprogression|roles|reset>\``,
       });
     }
   }
