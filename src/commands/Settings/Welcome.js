@@ -8,7 +8,6 @@ import { Command } from "#structures/classes/Command";
 import {
   PermissionFlagsBits,
   MessageFlags,
-  ApplicationCommandOptionType,
   ChannelType,
   ContainerBuilder,
   TextDisplayBuilder,
@@ -20,46 +19,83 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  EmbedBuilder,
 } from "discord.js";
 import { emoji } from "#config/emoji";
 import { logger } from "#utils/logger";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
-/** Replace placeholders in a welcome message template. */
+/** Replace placeholders in a welcome/leave message template. */
 export function resolvePlaceholders(template, member) {
   return template
     .replace(/\{user\}/g,          member.toString())
     .replace(/\{username\}/g,      member.user.username)
-    .replace(/\{displayname\}/g,   member.displayName)
+    .replace(/\{displayname\}/g,   member.displayName ?? member.user.username)
     .replace(/\{tag\}/g,           member.user.tag)
     .replace(/\{server\}/g,        member.guild.name)
     .replace(/\{membercount\}/g,   member.guild.memberCount.toString())
     .replace(/\{id\}/g,            member.user.id);
 }
 
+/** Helper to build the welcome embed for actual sends or live test previews. */
+export function buildWelcomeEmbed(cfg, member) {
+  const rawMessage = cfg.message ||
+    `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
+  const resolved = resolvePlaceholders(rawMessage, member);
+  const color = cfg.color ? parseInt(cfg.color.replace("#", ""), 16) : 0x5865f2;
+
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setAuthor({
+      name: `${member.user.username} just joined!`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true }),
+    })
+    .setDescription(resolved)
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+    .addFields(
+      { name: `${emoji.id} User ID`,   value: `\`${member.user.id}\``,                            inline: true },
+      { name: `${emoji.date} Joined`,  value: `<t:${Math.floor(Date.now() / 1000)}:R>`,            inline: true },
+      { name: `${emoji.users} Members`,value: `\`${member.guild.memberCount}\``,                  inline: true },
+    )
+    .setFooter({ text: member.guild.name, iconURL: member.guild.iconURL({ dynamic: true }) ?? undefined })
+    .setTimestamp();
+
+  if (cfg.bannerUrl) {
+    embed.setImage(cfg.bannerUrl);
+  }
+
+  return embed;
+}
+
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
 function statusBlock(cfg) {
-  const enabled  = cfg.enabled ? `${emoji.open} **Enabled**` : `${emoji.closed} **Disabled**`;
-  const channel  = cfg.channelId  ? `<#${cfg.channelId}>`    : "*not set*";
-  const role     = cfg.roleId     ? `<@&${cfg.roleId}>`      : "*none*";
-  const dm       = cfg.dmEnabled  ? `${emoji.check} On`      : `${emoji.cross} Off`;
-  const color    = cfg.color      ? `\`${cfg.color}\``        : "`#5865F2`";
+  const enabled   = cfg.enabled    ? `${emoji.open} **Enabled**`     : `${emoji.closed} **Disabled**`;
+  const channel   = cfg.channelId  ? `<#${cfg.channelId}>`        : "*not set*";
+  const role      = cfg.roleId     ? `<@&${cfg.roleId}>`          : "*none*";
+  const dm        = cfg.dmEnabled  ? `${emoji.check} On`          : `${emoji.cross} Off`;
+  const ping      = cfg.pingUser   ? `${emoji.check} On`          : `${emoji.cross} Off`;
+  const react     = cfg.autoReact  ? `${emoji.check} On (👋)`     : `${emoji.cross} Off`;
+  const color     = cfg.color      ? `\`${cfg.color}\``            : "`#5865F2`";
+  const banner    = cfg.bannerUrl  ? `[View Banner](${cfg.bannerUrl})` : "*none*";
 
-  const preview  = cfg.message
-    ? cfg.message.length > 80 ? cfg.message.slice(0, 80) + "…" : cfg.message
+  const preview   = cfg.message
+    ? cfg.message.length > 70 ? cfg.message.slice(0, 70) + "…" : cfg.message
     : "*no message set*";
 
   return [
-    `## ${emoji.bell} Welcome System`,
+    `## ${emoji.bell} Welcome System Configuration`,
     ``,
-    `${emoji.info}  **Status**   ${enabled}`,
-    `${emoji.channel}  **Channel**  ${channel}`,
-    `${emoji.users}  **Role**     ${role}`,
-    `${emoji.note}  **Message**  ${preview}`,
-    `${emoji.mute}  **DM User**  ${dm}`,
-    `${emoji.settings}  **Color**    ${color}`,
+    `${emoji.info}  **Status**       ${enabled}`,
+    `${emoji.channel}  **Channel**      ${channel}`,
+    `${emoji.users}  **Auto-Role**    ${role}`,
+    `${emoji.note}  **Message**      ${preview}`,
+    `${emoji.mute}  **DM User**      ${dm}`,
+    `${emoji.mention}  **Ping User**    ${ping}`,
+    `${emoji.heart}  **Auto-React**   ${react}`,
+    `${emoji.image}  **Banner Image** ${banner}`,
+    `${emoji.settings}  **Embed Color**  ${color}`,
     ``,
     `**Placeholders:** \`{user}\` \`{username}\` \`{displayname}\` \`{server}\` \`{membercount}\` \`{id}\``,
   ].join("\n");
@@ -77,12 +113,20 @@ function buildPanel(cfg) {
         new ButtonBuilder().setCustomId("welcome_toggle").setLabel(toggleLabel).setStyle(toggleStyle).setEmoji(cfg.enabled ? "🔕" : "🔔"),
         new ButtonBuilder().setCustomId("welcome_set_channel").setLabel("Set Channel").setStyle(ButtonStyle.Primary).setEmoji("📢"),
         new ButtonBuilder().setCustomId("welcome_set_message").setLabel("Set Message").setStyle(ButtonStyle.Primary).setEmoji("📝"),
+        new ButtonBuilder().setCustomId("welcome_test").setLabel("Test Preview").setStyle(ButtonStyle.Success).setEmoji("🧪"),
       )
     )
     .addActionRowComponents(
       new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId("welcome_set_role").setLabel("Auto-Role").setStyle(ButtonStyle.Secondary).setEmoji("🛡️"),
         new ButtonBuilder().setCustomId("welcome_toggle_dm").setLabel(`DM: ${cfg.dmEnabled ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("📨"),
+        new ButtonBuilder().setCustomId("welcome_toggle_ping").setLabel(`Ping: ${cfg.pingUser ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("🔔"),
+        new ButtonBuilder().setCustomId("welcome_toggle_react").setLabel(`React: ${cfg.autoReact ? "ON" : "OFF"}`).setStyle(ButtonStyle.Secondary).setEmoji("👋"),
+      )
+    )
+    .addActionRowComponents(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("welcome_set_banner").setLabel("Banner Image").setStyle(ButtonStyle.Secondary).setEmoji("🖼️"),
         new ButtonBuilder().setCustomId("welcome_set_color").setLabel("Embed Color").setStyle(ButtonStyle.Secondary).setEmoji("🎨"),
         new ButtonBuilder().setCustomId("welcome_reset").setLabel("Reset").setStyle(ButtonStyle.Danger).setEmoji("♻️"),
       )
@@ -148,6 +192,32 @@ class WelcomeCommand extends Command {
           return;
         }
 
+        // ── Toggle Ping ───────────────────────────────────────────────────────
+        if (i.customId === "welcome_toggle_ping") {
+          await db.setWelcome(ctx.guild.id, { pingUser: !cfg.pingUser });
+          await i.update({ components: [buildPanel(await db.getWelcome(ctx.guild.id))], flags: MessageFlags.IsComponentsV2 });
+          return;
+        }
+
+        // ── Toggle Auto-React ──────────────────────────────────────────────────
+        if (i.customId === "welcome_toggle_react") {
+          await db.setWelcome(ctx.guild.id, { autoReact: !cfg.autoReact });
+          await i.update({ components: [buildPanel(await db.getWelcome(ctx.guild.id))], flags: MessageFlags.IsComponentsV2 });
+          return;
+        }
+
+        // ── Test Preview ──────────────────────────────────────────────────────
+        if (i.customId === "welcome_test") {
+          const testEmbed = buildWelcomeEmbed(cfg, ctx.member);
+          const content = cfg.pingUser ? `${ctx.member}` : undefined;
+          await i.reply({
+            content: `🧪 **Welcome Message Live Test Preview:**\n${content ?? ""}`,
+            embeds: [testEmbed],
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
         // ── Reset ─────────────────────────────────────────────────────────────
         if (i.customId === "welcome_reset") {
           await db.clearWelcome(ctx.guild.id);
@@ -176,7 +246,7 @@ class WelcomeCommand extends Command {
             const submit = await i.awaitModalSubmit({ filter: (m) => m.user.id === ctx.author.id, time: 60_000 });
             const raw = submit.fields.getTextInputValue("channel_id").trim().replace(/\D/g, "");
             const ch  = ctx.guild.channels.cache.get(raw);
-            if (!ch || ch.type !== ChannelType.GuildText) {
+            if (!ch || !ch.isTextBased()) {
               await submit.reply({ content: `${emoji.cross} Invalid text channel ID.`, flags: MessageFlags.Ephemeral });
             } else {
               await db.setWelcome(ctx.guild.id, { channelId: ch.id });
@@ -251,6 +321,37 @@ class WelcomeCommand extends Command {
           return;
         }
 
+        // ── Set Banner image URL via modal ────────────────────────────────────
+        if (i.customId === "welcome_set_banner") {
+          const modal = new ModalBuilder()
+            .setCustomId("welcome_modal_banner")
+            .setTitle("Set Welcome Banner Image")
+            .addComponents(
+              new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                  .setCustomId("banner_url")
+                  .setLabel("Image / GIF URL (leave blank to disable)")
+                  .setStyle(TextInputStyle.Short)
+                  .setPlaceholder("https://i.imgur.com/example.png")
+                  .setValue(cfg.bannerUrl || "")
+                  .setRequired(false)
+              )
+            );
+          await i.showModal(modal);
+
+          try {
+            const submit = await i.awaitModalSubmit({ filter: (m) => m.user.id === ctx.author.id, time: 60_000 });
+            const url  = submit.fields.getTextInputValue("banner_url").trim();
+            if (url && !/^https?:\/\/.+/i.test(url)) {
+              await submit.reply({ content: `${emoji.cross} Invalid URL format. Must start with http:// or https://`, flags: MessageFlags.Ephemeral });
+            } else {
+              await db.setWelcome(ctx.guild.id, { bannerUrl: url || null });
+              await submit.update({ components: [buildPanel(await db.getWelcome(ctx.guild.id))], flags: MessageFlags.IsComponentsV2 });
+            }
+          } catch { /* timed out */ }
+          return;
+        }
+
         // ── Set embed color via modal ─────────────────────────────────────────
         if (i.customId === "welcome_set_color") {
           const modal = new ModalBuilder()
@@ -293,7 +394,6 @@ class WelcomeCommand extends Command {
       try {
         const cfg = await db.getWelcome(ctx.guild.id);
         const expired = buildPanel(cfg);
-        // disable all buttons
         expired.components.forEach(row => {
           if (row.components) row.components.forEach(c => c.setDisabled?.(true));
         });

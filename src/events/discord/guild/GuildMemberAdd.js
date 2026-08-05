@@ -6,8 +6,7 @@
 
 import { EmbedBuilder } from "discord.js";
 import { logger } from "#utils/logger";
-import { emoji } from "#config/emoji";
-import { resolvePlaceholders } from "#commands/Settings/Welcome";
+import { resolvePlaceholders, buildWelcomeEmbed } from "#commands/Settings/Welcome";
 
 export default {
   name: "guildMemberAdd",
@@ -21,35 +20,20 @@ export default {
       // ── Nothing configured ────────────────────────────────────────────────
       if (!cfg || !cfg.enabled) return;
 
-      // ── Resolve message text ──────────────────────────────────────────────
-      const rawMessage = cfg.message ||
-        `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
-      const resolved = resolvePlaceholders(rawMessage, member);
-
-      // ── Build embed ───────────────────────────────────────────────────────
-      const color  = cfg.color ? parseInt(cfg.color.replace("#", ""), 16) : 0x5865f2;
-
-      const embed = new EmbedBuilder()
-        .setColor(color)
-        .setAuthor({
-          name:    `${member.user.username} just joined!`,
-          iconURL: member.user.displayAvatarURL({ dynamic: true }),
-        })
-        .setDescription(resolved)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-        .addFields(
-          { name: `${emoji.id} User ID`,      value: `\`${member.user.id}\``,             inline: true },
-          { name: `${emoji.date} Joined`,      value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
-          { name: `${emoji.users} Members`,    value: `\`${guild.memberCount}\``,          inline: true },
-        )
-        .setFooter({ text: guild.name, iconURL: guild.iconURL({ dynamic: true }) ?? undefined })
-        .setTimestamp();
+      // ── Build welcome embed ───────────────────────────────────────────────
+      const embed = buildWelcomeEmbed(cfg, member);
 
       // ── Send to welcome channel ───────────────────────────────────────────
       if (cfg.channelId) {
         const channel = guild.channels.cache.get(cfg.channelId);
         if (channel?.isTextBased()) {
-          await channel.send({ embeds: [embed] });
+          const content = cfg.pingUser ? `${member}` : undefined;
+          const sentMsg = await channel.send({ content, embeds: [embed] });
+
+          // ── Auto React ────────────────────────────────────────────────────
+          if (cfg.autoReact) {
+            await sentMsg.react("👋").catch(() => {});
+          }
         } else {
           logger.warn("Welcome", `Channel ${cfg.channelId} not found or not text-based in ${guild.id}`);
         }
@@ -57,12 +41,21 @@ export default {
 
       // ── DM the new member ─────────────────────────────────────────────────
       if (cfg.dmEnabled) {
+        const rawMessage = cfg.message ||
+          `Welcome {user} to **{server}**! 🎉 You are our **#{membercount}** member.`;
+        const resolved = resolvePlaceholders(rawMessage, member);
+        const color = cfg.color ? parseInt(cfg.color.replace("#", ""), 16) : 0x5865f2;
+
         const dmEmbed = new EmbedBuilder()
           .setColor(color)
           .setTitle(`👋 Welcome to ${guild.name}!`)
           .setDescription(resolved)
           .setThumbnail(guild.iconURL({ dynamic: true }) ?? null)
           .setTimestamp();
+
+        if (cfg.bannerUrl) {
+          dmEmbed.setImage(cfg.bannerUrl);
+        }
 
         await member.send({ embeds: [dmEmbed] }).catch(() => {
           logger.debug("Welcome", `DM failed for ${member.user.tag} — DMs likely closed`);
