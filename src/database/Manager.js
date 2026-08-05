@@ -1022,6 +1022,62 @@ export class DatabaseManager extends EventEmitter {
 
     return this.getSuggestion(suggestionId);
   }
+
+  // ── Feedback System ────────────────────────────────────────────────────────
+
+  async getFeedbackConfig(guildId) {
+    const row = this.db.prepare("SELECT * FROM feedback_config WHERE guild_id = ?").get(guildId);
+    return { guildId, channelId: row?.channel_id ?? null };
+  }
+
+  async setFeedbackConfig(guildId, channelId) {
+    this.db.prepare(
+      `INSERT INTO feedback_config (guild_id, channel_id) VALUES (?, ?)
+       ON CONFLICT(guild_id) DO UPDATE SET channel_id = excluded.channel_id`
+    ).run(guildId, channelId);
+    return this.getFeedbackConfig(guildId);
+  }
+
+  async createFeedback(guildId, userId, stars, message, channelId) {
+    const feedbackId = `fb_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    this.db.prepare(
+      `INSERT INTO feedbacks (feedback_id, guild_id, user_id, stars, message, channel_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(feedbackId, guildId, userId, stars, message, channelId, now());
+
+    return {
+      feedbackId,
+      guildId,
+      userId,
+      stars,
+      message,
+      channelId,
+      createdAt: now(),
+    };
+  }
+
+  async setFeedbackMessageId(feedbackId, messageId) {
+    this.db.prepare("UPDATE feedbacks SET message_id = ? WHERE feedback_id = ?").run(messageId, feedbackId);
+  }
+
+  async getFeedbackStats(guildId) {
+    const totalRow = this.db.prepare("SELECT COUNT(*) AS total, AVG(stars) AS avg_stars FROM feedbacks WHERE guild_id = ?").get(guildId);
+    const breakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    const rows = this.db.prepare(
+      "SELECT stars, COUNT(*) AS count FROM feedbacks WHERE guild_id = ? GROUP BY stars"
+    ).all(guildId);
+
+    for (const r of rows) {
+      breakdown[r.stars] = r.count;
+    }
+
+    return {
+      total: totalRow?.total ?? 0,
+      average: totalRow?.avg_stars ? parseFloat(totalRow.avg_stars.toFixed(2)) : 0,
+      breakdown,
+    };
+  }
 }
 
 export const createDatabaseManager = (client) => new DatabaseManager(client);

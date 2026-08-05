@@ -165,6 +165,25 @@ export function initializeDatabase(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_sug_guild ON suggestions(guild_id);
     CREATE INDEX IF NOT EXISTS idx_sug_status ON suggestions(guild_id, status);
+
+    -- ─── Feedback & Review System ──────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS feedback_config (
+      guild_id    TEXT PRIMARY KEY,
+      channel_id  TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS feedbacks (
+      feedback_id TEXT PRIMARY KEY,
+      guild_id    TEXT    NOT NULL,
+      user_id     TEXT    NOT NULL,
+      stars       INTEGER NOT NULL CHECK(stars BETWEEN 1 AND 5),
+      message     TEXT    NOT NULL,
+      channel_id  TEXT,
+      message_id  TEXT,
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_fb_guild ON feedbacks(guild_id);
+    CREATE INDEX IF NOT EXISTS idx_fb_stars ON feedbacks(guild_id, stars);
   `);
 }
 

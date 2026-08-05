@@ -179,6 +179,13 @@ The SQLite database file is created automatically at `./data/tickets.db` on firs
 | `/suggest-manage setup <channel>` | Set the server suggestion channel | Manage Guild |
 | `/suggest-manage <accept\|deny\|consider> <id> [reason]` | Respond to a suggestion & edit embed live | Manage Guild |
 
+### ⭐ Feedback & Reviews System
+| Command | Description | Permission |
+|---|---|---|
+| `/feedback <stars 1-5> <message>` | Submit a server/staff review with star rating (`/review`) | Everyone |
+| `/feedback-manage setup <channel>` | Set the feedback/reviews channel | Manage Guild |
+| `/feedback-manage stats` | View overall rating score & 1⭐–5⭐ distribution breakdown | Manage Guild |
+
 ### 🛠️ Admin / Settings
 | Command | Description | Permission |
 |---|---|---|
