@@ -15,7 +15,7 @@ for (const [name, value] of Object.entries(PermissionFlagsBits)) {
   );
 }
 
-export function canUseCommand(member, command, staffRoleIds) {
+export function canUseCommand(member, command, staffRoleIds = []) {
   if (command.staffOnly) {
     if (!member.roles.cache.some(r => staffRoleIds.includes(r.id))) return false;
   }
@@ -30,7 +30,11 @@ export function canUseCommand(member, command, staffRoleIds) {
 }
 
 export function getMissingBotPermissions(channel, permissions) {
-  const botPerms = channel.guild.members.me.permissionsIn(channel);
+  const me = channel.guild?.members?.me ?? channel.guild?.members?.cache?.get(channel.client.user.id);
+  if (!me) return [];
+  const botPerms = channel.permissionsFor(me);
+  if (!botPerms) return [];
+
   const missing = [];
   for (const perm of permissions) {
     if (!botPerms.has(perm)) {
@@ -53,12 +57,16 @@ export async function validateCommand(ctx, command) {
   const channel = interaction?.channel || message?.channel;
   const guild = interaction?.guild || message?.guild;
 
-  const member =
-    interaction?.member ||
-    guild.members.cache.get(user.id) ||
-    (await guild.members.fetch(user.id));
+  if (!guild || !user || !channel) return { valid: true };
 
-  const staffRoleIds = await client.db.getStaffRoles(guild.id);
+  let member = interaction?.member || guild.members.cache.get(user.id);
+  if (!member) {
+    member = await guild.members.fetch(user.id).catch(() => null);
+  }
+
+  if (!member) return { valid: true };
+
+  const staffRoleIds = (await client.db.getStaffRoles(guild.id).catch(() => [])) || [];
 
   if (!canUseCommand(member, command, staffRoleIds)) {
     const perms = getUserPermissionsList(command.userPermissions);
@@ -85,7 +93,7 @@ export async function validateCommand(ctx, command) {
   }
 
   if (command.ticketOnly) {
-    const isTicket = await client.db.isTicketChannel(channel.id);
+    const isTicket = await client.db.isTicketChannel(channel.id).catch(() => false);
     if (!isTicket) {
       return {
         valid: false,
