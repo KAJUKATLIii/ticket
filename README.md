@@ -7,6 +7,7 @@
   <img src="https://img.shields.io/badge/discord.js-5865F2.svg?style=for-the-badge&logo=discorddotjs&logoColor=white" alt="discord.js"/>
   <img src="https://img.shields.io/badge/Node.js-339933.svg?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js"/>
   <img src="https://img.shields.io/badge/SQLite-003B57.svg?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite"/>
+  <img src="https://img.shields.io/badge/Canvas-8B5CF6.svg?style=for-the-badge&logo=canvas&logoColor=white" alt="Canvas"/>
 </p>
 
 <p>
@@ -19,8 +20,8 @@
 
 # 🎫 TicketBot
 
-**A powerful, zero-dependency Discord ticket management & community system.**  
-Built with Discord.js v14, Component V2 UI, and a local SQLite database — no MongoDB, no cloud setup required.
+**A multi-functional, zero-dependency Discord ticket, leveling, suggestions, feedback, polls, and welcome management bot.**  
+Built with Discord.js v14, `@napi-rs/canvas` Image Rendering, and high-performance WAL SQLite — no MongoDB, no external cloud required.
 
 *Default Activity Status:* `Watching tickets for insane community`
 
@@ -28,44 +29,121 @@ Built with Discord.js v14, Component V2 UI, and a local SQLite database — no M
 
 ---
 
-## ✨ Features
+## ✨ System Features Overview
 
-### 🎫 Ticket Management
-| Feature | Description |
-|---|---|
-| **Create Tickets** | Members create tickets with customizable categories via select menus |
-| **Full Lifecycle** | Open → Close → Reopen → Delete with full history |
-| **User Management** | Add or remove users from any ticket |
-| **Ticket Ratings** | 1–5 star rating system with optional feedback |
-| **Transcripts** | HTML transcript export on ticket close |
-| **Control Panel** | Per-ticket embedded control message |
+- 🎫 **Multi-Category Ticket System** — Custom dropdown panels, user add/remove, ratings, HTML transcripts, and auto-delete.
+- 🎨 **Dynamic Canvas Image Cards** — Beautiful dark-purple glassmorphic Canvas Rank Cards (`/rank`) and Server Leaderboard Cards (`/leaderboard`).
+- 📊 **Custom Level Progression** — Max level cap (e.g. Level 50), XP requirement multipliers, server XP rates, and dedicated XP channel restrictions.
+- 💡 **Suggestions System** — Interactive voting buttons, live embed updates (Accepted/Denied/Considered), and auto-deleting trigger messages.
+- ⭐ **Feedback & Star Reviews** — 1 to 5 star rating reviews, statistics breakdown, and dedicated review channel.
+- 📊 **Interactive Poll System** — Up to 5 custom options with real-time voting buttons and visual percentage progress bars `[██████░░] 75%`.
+- 📢 **Rich Welcome & Goodbye System** — Embed vs Normal Text toggle, dynamic placeholders, auto-role, and interactive live test preview.
+- 🎨 **Interactive Embed Designer** — Modal-driven custom embed builder.
 
-### 📢 Advanced Welcome & Goodbye System
-| Feature | Description |
-|---|---|
-| **Channel Welcome** | Send a rich embed when someone joins |
-| **DM Welcome** | Optionally DM the new member |
-| **Auto-Role** | Automatically assign a role on join |
-| **Custom Message** | Fully customizable message with placeholders |
-| **Custom Banner** | Support for image / GIF banner URLs |
-| **Ping & React** | Toggle `@user` pings & auto 👋 emoji reactions |
-| **Live Test Preview** | Instant live preview button in `/welcome` config panel |
-| **Goodbye System** | Send a goodbye embed when a member leaves |
+---
 
-### 🛠️ Admin & Settings
-- Multi-panel support with separate categories per panel
-- Role-based access control (staff roles + per-category support roles)
-- Per-server prefix customization
-- User blacklist system
-- Detailed ticket logs (create, close, delete, add, remove, rate)
-- Interactive settings dashboard via `/settings` and `/welcome`
+## 📚 Command Directory (Category-Wise)
 
-### 🚀 Technical
-- **SQLite** — embedded database, zero server setup, single `.db` file
-- **Discord.js v14** with Components V2 (containers, text displays, separators)
-- **ESM modules** — modern JavaScript throughout
-- **Event-driven** architecture with modular command/event loaders
-- **No native dependencies** — runs on any Node.js ≥ 18
+All commands support both **Slash (`/`)** and **Prefix (`.`)** invocation.
+
+### 🎫 1. Ticket System Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/panel` | `/panel` | Setup interactive ticket panels & category dropdown select menus | Manage Guild |
+| `/add` | `/add <@user>` | Add a member to the current ticket channel | Ticket Staff |
+| `/remove` | `/remove <@user>` | Remove a member from the ticket channel | Ticket Staff |
+| `/close` | `/close [reason]` | Close ticket with confirmation & HTML transcript export | Ticket Staff / Owner |
+| `/reopen` | `/reopen` | Reopen a closed ticket channel | Ticket Staff |
+| `/delete` | `/delete` | Delete a closed ticket channel & save transcript | Ticket Staff |
+
+---
+
+### 📊 2. Leveling & XP Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/rank` | `/rank [@user]` | Display dynamic Canvas Rank Card PNG image, level, and XP bar | Everyone |
+| `/leaderboard` | `/leaderboard` (`.top`, `.lb`) | Render top 10 Canvas Leaderboard PNG image with medals | Everyone |
+| `/leveladmin addxp` | `/leveladmin addxp <@user> <amount>` | Grant bonus XP to a user | Manage Guild |
+| `/leveladmin addrole` | `/leveladmin addrole <level> <@role>` | Set auto-role reward for reaching a specific level | Manage Guild |
+| `/leveladmin setchannel` | `/leveladmin setchannel [channel] [toggle]` | Set level-up announcement channel or toggle messages on/off | Manage Guild |
+| `/leveladmin setxpchannel` | `/leveladmin setxpchannel [channel] [mode]` | Restrict XP earning to a specific channel (or allow all) | Manage Guild |
+| `/leveladmin setprogression` | `/leveladmin setprogression [maxlevel] [xprate]` | Custom level cap (e.g. Level 50), XP requirement, & XP boost rate | Manage Guild |
+| `/leveladmin roles` | `/leveladmin roles` | View all configured level role rewards | Manage Guild |
+| `/leveladmin reset` | `/leveladmin reset` | Reset all leveling data for the server | Manage Guild |
+
+---
+
+### 💡 3. Suggestions Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/suggest` | `/suggest <suggestion text>` | Submit a new suggestion with interactive voting buttons | Everyone |
+| `/suggest-manage setup` | `/suggest-manage setup <#channel>` | Set the dedicated suggestions channel | Manage Guild |
+| `/suggest-manage accept` | `/suggest-manage accept <id> [reason]` | Approve suggestion (Green status & updates embed live) | Manage Guild |
+| `/suggest-manage deny` | `/suggest-manage deny <id> [reason]` | Deny suggestion (Red status & updates embed live) | Manage Guild |
+| `/suggest-manage consider` | `/suggest-manage consider <id> [reason]` | Mark suggestion under consideration (Yellow status) | Manage Guild |
+
+---
+
+### ⭐ 4. Feedback & Reviews Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/feedback` | `/feedback <1-5 stars> <message>` | Submit a server/staff review with star rating (`/review`) | Everyone |
+| `/feedback-manage setup` | `/feedback-manage setup <#channel>` | Set dedicated feedback/reviews channel | Manage Guild |
+| `/feedback-manage stats` | `/feedback-manage stats` | View overall rating score & 1⭐–5⭐ distribution breakdown | Manage Guild |
+
+---
+
+### 📊 5. Poll Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/poll` | `/poll <question> <option1> <option2> ...` | Create an interactive poll with up to 5 options & real-time progress bars | Manage Messages |
+
+---
+
+### 👋 6. Welcome System Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/welcome channel` | `/welcome channel <#channel>` | Set welcome announcement channel | Manage Guild |
+| `/welcome message` | `/welcome message <text>` | Set custom welcome message text with placeholders | Manage Guild |
+| `/welcome mode` | `/welcome mode <embed\|normal>` | Toggle between Rich Embed Mode and Normal Text Mode | Manage Guild |
+| `/welcome test` | `/welcome test` | Send an interactive test preview to verify your setup | Manage Guild |
+
+---
+
+### 🎨 7. Embed Builder Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/embed` | `/embed [#channel]` | Interactive custom rich embed builder with title, description & color | Manage Messages |
+
+---
+
+### ⚙️ 8. Admin & Server Settings Commands
+| Command | Usage | Description | Permission |
+|---|---|---|---|
+| `/setprefix` | `/setprefix <prefix>` | Set custom server prefix (e.g. `!`, `.`, `?`) | Manage Guild |
+| `/blacklist` | `/blacklist <add\|remove\|list> <@user>` | Blacklist a user from creating tickets or using bot | Manage Guild |
+| `/staffrole` | `/staffrole <add\|remove\|list> <@role>` | Manage staff roles for ticket management | Manage Guild |
+| `/help` | `/help` | Show interactive category-wise command directory | Everyone |
+
+---
+
+## 📢 Welcome Placeholders Matrix
+
+Use these in your custom welcome and goodbye messages:
+
+| Placeholder | Output | Example |
+|---|---|---|
+| `{user}` | @mention of the member | `@KAJUKATLI` |
+| `{username}` | Username | `kajukatli` |
+| `{displayname}` | Server display name | `KAJUKATLI ⚡` |
+| `{server}` | Server name | `Insane Community` |
+| `{membercount}` | Current member count | `1,250` |
+| `{id}` | User Discord ID | `931059762173464597` |
+
+**Example Usage:**
+```text
+Welcome {user} to **{server}**! 🎉 You are our #{membercount} member. Read the rules and enjoy your stay!
+```
 
 ---
 
@@ -88,189 +166,59 @@ src/
 │   ├── config.js       # Bot config & env vars
 │   └── emoji.js        # Emoji map (Unicode + helpers)
 ├── database/
-│   ├── Schema.js       # SQL CREATE TABLE definitions
+│   ├── Schema.js       # SQL CREATE TABLE definitions & Auto-Migrations
 │   └── Manager.js      # All database operations
 ├── events/
 │   └── discord/
 │       ├── clientReady.js  # Startup & slash command loader
 │       ├── ready.js        # Bot presence activity handler
-│       ├── guild/          # Slash, PrefixCmd, ChannelDelete, GuildMemberAdd, GuildMemberRemove
+│       ├── guild/          # Slash, PrefixCmd, GuildMemberAdd, GuildMemberRemove, MessageXP, SuggestionVotes, PollVotes
 │       └── ticket/         # Create, Closed, Deleted, Added, Removed, Rated, Reopen
 ├── structures/
 │   ├── classes/        # Bot, Command, Context, TicketUI
 │   └── handlers/       # CommandHandler, EventLoader
-└── utils/              # Logger, PermissionHandler, Utils
+└── utils/              # Logger, PermissionHandler, rankCardGenerator, leaderboardCardGenerator
 ```
 
 ---
 
-## 📦 Setup
+## 📦 Setup & Installation
 
 ### Prerequisites
 - **Node.js v18+** — [Download](https://nodejs.org/)
-- **A Discord Bot Token** — [Create one](https://discord.com/developers/applications)
 - **Git** — [Download](https://git-scm.com/)
 
-### Installation
+### Installation Steps
 
-**1. Clone the repo**
-```bash
-git clone https://github.com/KAJUKATLIii/ticket.git
-cd ticket
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/KAJUKATLIii/ticket.git
+   cd ticket
+   ```
 
-**2. Install dependencies**
-```bash
-npm install
-```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-**3. Configure environment**
+3. **Configure Environment (.env):**
+   ```env
+   token=YOUR_BOT_TOKEN_HERE
+   PREFIX=.
+   DATABASE_PATH=./data/tickets.db
+   NODE_ENV=production
+   ```
 
-Create a `.env` file in the project root (or copy `.env.example`):
-```env
-# ── Discord ──────────────────────────────
-token=your_bot_token_here
-PREFIX=.
-
-# ── Database (optional, defaults to ./data/tickets.db) ──
-DATABASE_PATH=./data/tickets.db
-
-# ── Environment ──────────────────────────
-NODE_ENV=production
-```
-
-**4. Start the bot**
-```bash
-npm start
-```
-
-The SQLite database file is created automatically at `./data/tickets.db` on first run. No external database setup needed.
-
----
-
-## ⚙️ Environment Variables
-
-| Variable | Description | Required | Default |
-|---|---|---|---|
-| `token` | Discord bot token | ✅ | — |
-| `PREFIX` | Prefix for text commands | ❌ | `.` |
-| `DATABASE_PATH` | Path to SQLite `.db` file | ❌ | `./data/tickets.db` |
-| `NODE_ENV` | `production` or `development` | ❌ | `development` |
-
----
-
-## 🎯 Commands
-
-### 🎫 Ticket
-| Command | Description |
-|---|---|
-| `/add <user>` | Add a user to the current ticket |
-| `/close [reason]` | Close the current ticket |
-| `/delete` | Delete a closed ticket |
-| `/remove <user>` | Remove a user from the ticket |
-| `/reopen` | Reopen a closed ticket |
-
-### 📊 Leveling & XP System
-| Command | Description | Permission |
-|---|---|---|
-| `/rank [user]` | Display rank card, level, XP, and progress bar | Everyone |
-| `/leaderboard` | Top 10 XP leaderboard for the server (`/top`, `/lb`) | Everyone |
-| `/leveladmin <addxp\|addrole\|setchannel\|roles\|reset>` | Manage user XP, level-up channel, role rewards, and server reset | Manage Guild |
-
-### 💡 Suggestions System
-| Command | Description | Permission |
-|---|---|---|
-| `/suggest <text>` | Submit a new suggestion with interactive voting buttons | Everyone |
-| `/suggest-manage setup <channel>` | Set the server suggestion channel | Manage Guild |
-| `/suggest-manage <accept\|deny\|consider> <id> [reason]` | Respond to a suggestion & edit embed live | Manage Guild |
-
-### ⭐ Feedback & Reviews System
-| Command | Description | Permission |
-|---|---|---|
-| `/feedback <stars 1-5> <message>` | Submit a server/staff review with star rating (`/review`) | Everyone |
-| `/feedback-manage setup <channel>` | Set the feedback/reviews channel | Manage Guild |
-| `/feedback-manage stats` | View overall rating score & 1⭐–5⭐ distribution breakdown | Manage Guild |
-
-### 📊 Poll System
-| Command | Description | Permission |
-|---|---|---|
-| `/poll <question> <option1> <option2> ...` | Create an interactive poll with up to 5 options & real-time progress bars | Manage Messages |
-
-### 🛠️ Admin / Settings
-| Command | Description | Permission |
-|---|---|---|
-| `/panel` | Create & manage ticket panels | Manage Guild |
-| `/settings` | Configure bot settings | Manage Guild |
-| `/welcome` | Interactive welcome/goodbye system panel | Manage Guild |
-| `/embed [#channel]` | Interactive custom rich embed builder | Manage Messages |
-| `/help` | Show all commands | Everyone |
-
-### 📢 Welcome Placeholders
-Use these in your custom welcome and goodbye messages:
-
-| Placeholder | Output |
-|---|---|
-| `{user}` | @mention of the member |
-| `{username}` | Username (e.g. `KAJUKATLI`) |
-| `{displayname}` | Server display name |
-| `{server}` | Server name |
-| `{membercount}` | Current member count |
-| `{id}` | User ID |
-
-**Example:**
-```
-Welcome {user} to **{server}**! 🎉 You are our #{membercount} member.
-```
-
----
-
-## 🗄️ Database
-
-TicketBot uses **SQLite** via `sql.js` — a WebAssembly build with zero native compilation required.
-
-| Table | Purpose |
-|---|---|
-| `guilds` | Per-server config (prefix, staff roles, welcome config) |
-| `blacklisted_users` | Blacklisted user entries |
-| `panels` | Ticket panels |
-| `categories` | Panel categories |
-| `tickets` | All tickets |
-| `ticket_added_users` | Users added to tickets |
-| `ticket_removed_users` | Users removed from tickets |
-
----
-
-## 📜 Changelog
-
-### v2.0.0 *(Current)*
-- 🆕 **Enhanced Welcome & Goodbye System** — channel embed, DM, auto-role, banner image, ping toggle, auto-react, live preview, leave notifications
-- 🤖 **Custom Bot Presence** — `Watching tickets for insane community` via `ready.js`
-- 🔄 **Database Migration** — MongoDB/Mongoose → SQLite (no server required)
-- 🎨 **Emoji Overhaul** — all Unicode, no custom server emojis needed
-- 🛡️ **Author & Credits Updated** — © 2026 KAJUKATlii / KAJUKATLI
-- ⚡ **Performance** — WAL mode SQLite, prepared statements throughout
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, open an issue first.
-
-1. Fork the repo
-2. Create your branch: `git checkout -b feature/my-feature`
-3. Commit: `git commit -m "feat: add my feature"`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
+4. **Start the Bot:**
+   ```bash
+   npm start
+   ```
 
 ---
 
 <div align="center">
 
 **Made with ❤️ by [KAJUKATLI](https://github.com/KAJUKATLIii)**
-
-[🐛 Report Bug](https://github.com/KAJUKATLIii/ticket/issues) •
-[💡 Request Feature](https://github.com/KAJUKATLIii/ticket/issues) •
-[⭐ Star this repo](https://github.com/KAJUKATLIii/ticket)
 
 © 2026 KAJUKATlii — MIT License
 
