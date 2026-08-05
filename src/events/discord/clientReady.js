@@ -16,7 +16,7 @@ export default {
     logger.success("Bot", `Logged in as ${client.user.tag}`);
     logger.info("Bot", `Serving ${client.guilds.cache.size} guilds`);
 
-    // Set bot presence to: Watching tickets for insane community
+    // Set bot presence
     client.user.setActivity(" HELPING AAYUSH IS INSANE AND BANDHILKI SMP", {
       type: ActivityType.Watching,
     });
@@ -26,68 +26,31 @@ export default {
     initBirthdayChecker(client);
 
     try {
-      const slashCommandsData =
-        client.commandHandler.getSlashCommandsData();
+      const slashCommandsData = client.commandHandler.getSlashCommandsData();
 
       if (!slashCommandsData || slashCommandsData.length === 0) {
-        logger.info("Slash", "No slash commands to register");
+        logger.info("Slash", "No slash commands found to register.");
         return;
       }
+
+      logger.info("Slash", `Registering and refreshing all ${slashCommandsData.length} slash commands...`);
 
       const rest = new REST({ version: "10" }).setToken(config.token);
 
-      const currentCommands = await rest.get(
-        Routes.applicationCommands(client.user.id),
-      );
-
-      const currentMap = new Map(
-        currentCommands.map((c) => [c.name, c]),
-      );
-
-      const normalize = (cmd) => {
-        const { id, application_id, version, guild_id, ...rest } = cmd;
-        return rest;
-      };
-
-      const toUpdate = slashCommandsData.filter((cmd) => {
-        const existing = currentMap.get(cmd.name);
-        if (!existing) return true;
-        return (
-          JSON.stringify(normalize(existing)) !==
-          JSON.stringify(normalize(cmd))
-        );
-      });
-
-      if (toUpdate.length === 0) {
-        logger.success("Slash", "Commands already in sync");
-        return;
-      }
-
-      const merged = [];
-      const updateMap = new Map(toUpdate.map((c) => [c.name, c]));
-
-      for (const cmd of currentCommands) {
-        if (updateMap.has(cmd.name)) {
-          merged.push(updateMap.get(cmd.name));
-          updateMap.delete(cmd.name);
-        } else {
-          merged.push(cmd);
-        }
-      }
-
-      merged.push(...updateMap.values());
-
+      // Force register/reload all commands with Discord API
       await rest.put(
         Routes.applicationCommands(client.user.id),
-        { body: merged },
+        { body: slashCommandsData },
       );
 
       logger.success(
         "Slash",
-        `Updated ${toUpdate.length} commands`,
+        `Successfully reloaded and registered all ${slashCommandsData.length} commands globally!`,
       );
     } catch (err) {
-      logger.error("Slash", "Auto register failed", err);
+      logger.error("Slash", "Failed to reload slash commands", err);
     }
   },
 };
+
+// bread reloader
