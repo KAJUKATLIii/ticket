@@ -30,7 +30,7 @@ export const config = {
       "https://discord.com/api/oauth2/authorize?client_id624000&permissions=8&scope=bot",
   },
 
-  watermark: "coded by bre4d",
+  watermark: "coded by KAJUKATLI",
   version: "2.0.0",
 };
 

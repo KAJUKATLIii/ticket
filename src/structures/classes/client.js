@@ -71,7 +71,7 @@ export class Bot extends Client {
       await this.login(config.token);
 
       this.logger.success("Bot", `❄️ Bot has successfully initialized. 🌸`);
-      this.logger.info("Bot", "❄️ Coded by Bre4d777");
+      this.logger.info("Bot", "❄️ Coded by KAJUKATLI");
     } catch (error) {
       this.logger.error("Bot", "❄️ Failed to initialize bot cluster:", error);
       throw error;

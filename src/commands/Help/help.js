@@ -100,7 +100,7 @@ class HelpCommand extends Command {
       )
       .addTextDisplayComponents(
         (textDisplay) =>
-          textDisplay.setContent("-# © Bre4d OpenUwU")
+          textDisplay.setContent("-# © KAJUKATLI")
       );
 
     await ctx.reply({
