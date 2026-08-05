@@ -260,7 +260,7 @@ class SettingsCommand extends Command {
     const c = new ContainerBuilder();
     c.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `## ${emoji.ticket} Settings Guide\n\n**Prefix**\nThe command prefix for text commands. Default is \`!\`\n\n**Staff Roles**\nUsers with staff roles have elevated permissions across all tickets:\n${emoji.check} Close any ticket\n${emoji.check} Delete any ticket\n${emoji.check} Add/remove users from tickets\n${emoji.check} Reopen closed tickets\n\n**Staff Roles vs Support Roles**\nStaff roles are server-wide and work on all tickets. Support roles are category-specific and only grant access to tickets in their assigned categories.\n\n**Blacklist**\nBlacklisted users cannot create new tickets. Existing tickets remain accessible but no new tickets can be opened.`
+        `## ${emoji.ticket} Settings Guide\n\n**Prefix**\nThe command prefix for text commands. Default is \`.\`\n\n**Staff Roles**\nUsers with staff roles have elevated permissions across all tickets:\n${emoji.check} Close any ticket\n${emoji.check} Delete any ticket\n${emoji.check} Add/remove users from tickets\n${emoji.check} Reopen closed tickets\n\n**Staff Roles vs Support Roles**\nStaff roles are server-wide and work on all tickets. Support roles are category-specific and only grant access to tickets in their assigned categories.\n\n**Blacklist**\nBlacklisted users cannot create new tickets. Existing tickets remain accessible but no new tickets can be opened.`
       )
     );
     c.addSeparatorComponents(
