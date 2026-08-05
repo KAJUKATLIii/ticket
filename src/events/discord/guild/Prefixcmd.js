@@ -8,7 +8,7 @@ import { EmbedBuilder } from "discord.js";
 import { logger } from "#utils/logger";
 import { config } from "#config/config";
 import { validateCommand } from "#utils/permissionHandler";
-import { CommandContext } from "#classes/Context";
+import { CommandContext } from "#classes/context";
 import { emoji } from "#config/emoji";
 
 let db;
