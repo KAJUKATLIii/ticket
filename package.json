@@ -1,7 +1,7 @@
 {
   "name": "ticket-bot",
   "version": "2.0.0",
-  "description": "A versatile Discord.js bot with modular command architecture",
+  "description": "A versatile Discord.js bot with modular commands, ticketing, leveling, suggestions, feedback, polls, and welcome systems",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
@@ -19,10 +19,23 @@
     "#classes/*": "./src/structures/classes/*.js",
     "#db/*": "./src/database/*.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KAJUKATLIii/ticket.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KAJUKATLIii/ticket/issues"
+  },
+  "homepage": "https://github.com/KAJUKATLIii/ticket#readme",
   "keywords": [
     "discord",
     "bot",
-    "discord.js"
+    "discord.js",
+    "ticket-bot",
+    "leveling",
+    "suggestions",
+    "feedback",
+    "polls"
   ],
   "author": "KAJUKATLii",
   "license": "MIT",
